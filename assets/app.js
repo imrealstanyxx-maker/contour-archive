@@ -191,9 +191,10 @@
       }
       
       // Только админ видит секретные материалы
-      const hasSecretAccess = hasInternalAccess();
+      // Для фильтрации возвращаем false, админ увидит материалы после загрузки через updateInternalAccessUI
       if (item.access === "internal") {
-        return hasSecretAccess;
+        // Временно скрываем, будет показано после проверки доступа
+        return false;
       }
       
       // Обычные пользователи видят публичные и утечки

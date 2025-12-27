@@ -36,7 +36,7 @@
     runDossier(data);
   }
   
-  function runDossier(data) {
+  async function runDossier(data) {
 
   async function hasInternalAccess(){
     // Проверяем через Supabase
@@ -157,7 +157,8 @@
     return;
   }
 
-  if (!canSee(entry, mode)){
+  const canView = await canSee(entry, mode);
+  if (!canView){
     elHead.textContent = "Доступ запрещён";
     elMeta.innerHTML = `<div class="note">Эта запись недоступна при текущем уровне доступа.</div>`;
     elBlocks.innerHTML = "";
@@ -185,10 +186,25 @@
   
   // Показываем полную локацию при внутреннем доступе
   let location = entry.location || "не раскрыто";
-  if (mode === "internal" && hasInternalAccess()) {
-    if (entry.id === "KEM-002") {
-      location = "Санкт-Петербург, ул. Псковская, д. 18 (Государственный архив СПб, лестничный пролёт между 3-4 этажами)";
-    }
+  if (mode === "internal" && entry.id === "KEM-002") {
+    // Проверяем доступ асинхронно и обновляем локацию
+    hasInternalAccess().then(hasAccess => {
+      if (hasAccess) {
+        // Находим элемент локации и обновляем его
+        setTimeout(() => {
+          const locationRows = document.querySelectorAll('.kv-row');
+          locationRows.forEach(row => {
+            const key = row.querySelector('.kv-k');
+            if (key && key.textContent.trim() === 'Локация') {
+              const value = row.querySelector('.kv-v');
+              if (value) {
+                value.textContent = "Санкт-Петербург, ул. Псковская, д. 18 (Государственный архив СПб, лестничный пролёт между 3-4 этажами)";
+              }
+            }
+          });
+        }, 100);
+      }
+    });
   }
   
   const metaRows = [
