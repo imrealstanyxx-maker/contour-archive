@@ -1,0 +1,64 @@
+═══════════════════════════════════════════════════════════════
+  КАК ВОЙТИ В АККАУНТ АДМИНА "marcelo"
+═══════════════════════════════════════════════════════════════
+
+ВАРИАНТ 1: Если вы уже зарегистрированы в Supabase
+───────────────────────────────────────────────────────────────
+
+1. Зайдите в Supabase Dashboard
+2. SQL Editor
+3. Выполните этот запрос (замените email на ваш):
+
+UPDATE profiles 
+SET role = 'admin' 
+WHERE id = (SELECT id FROM auth.users WHERE email = 'ваш_email@example.com');
+
+4. Нажмите Run
+5. Выйдите из аккаунта на сайте (если залогинены)
+6. Войдите снова с вашим email и паролем
+7. Теперь вы админ!
+
+───────────────────────────────────────────────────────────────
+
+ВАРИАНТ 2: Создать новый аккаунт админа
+───────────────────────────────────────────────────────────────
+
+1. На сайте зарегистрируйтесь с email (например: marcelo@example.com)
+2. Зайдите в Supabase Dashboard
+3. SQL Editor
+4. Выполните:
+
+UPDATE profiles 
+SET role = 'admin', username = 'marcelo'
+WHERE id = (SELECT id FROM auth.users WHERE email = 'marcelo@example.com');
+
+5. Войдите на сайте с этим email и паролем
+
+───────────────────────────────────────────────────────────────
+
+ВАРИАНТ 3: Создать админа напрямую в Supabase
+───────────────────────────────────────────────────────────────
+
+1. Supabase Dashboard → Authentication → Users
+2. Нажмите "Add user" → "Create new user"
+3. Email: marcelo@example.com (или ваш email)
+4. Password: ваш пароль
+5. Нажмите "Create user"
+6. SQL Editor → выполните:
+
+UPDATE profiles 
+SET role = 'admin', username = 'marcelo'
+WHERE id = (SELECT id FROM auth.users WHERE email = 'marcelo@example.com');
+
+7. Войдите на сайте с этим email и паролем
+
+═══════════════════════════════════════════════════════════════
+
+ВАЖНО: В Supabase используется EMAIL, а не логин "marcelo"!
+
+Для входа используйте:
+- Email: ваш email (например: imrealstanyxx@gmail.com)
+- Пароль: пароль который вы указали при регистрации
+
+═══════════════════════════════════════════════════════════════
+
