@@ -58,9 +58,11 @@
   <script src="assets/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    let supabase = null;
+    (function() {
+      'use strict';
+      let supabaseClient = null;
 
-    async function init() {
+      async function init() {
       // Ждём загрузки Supabase SDK
       if (typeof window.supabase === 'undefined') {
         await new Promise((resolve) => {
@@ -95,11 +97,24 @@
         return;
       }
 
-      supabase = window.supabase.createClient(
-        window.CONTOUR_CONFIG.SUPABASE_URL,
-        window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-      );
-    }
+        try {
+          supabaseClient = window.supabase.createClient(
+            window.CONTOUR_CONFIG.SUPABASE_URL,
+            window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+          );
+          console.log("Supabase клиент создан успешно");
+        } catch (error) {
+          console.error("Ошибка создания Supabase клиента:", error);
+          const formEl = document.getElementById("register-form");
+          if (formEl) {
+            formEl.innerHTML = `
+              <div class="note" style="color: #ef4444;">
+                Ошибка инициализации Supabase: ${error.message}
+              </div>
+            `;
+          }
+        }
+      }
 
     document.getElementById("register-form").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -124,9 +139,9 @@
         return;
       }
 
-      if (!supabase) {
+      if (!supabaseClient) {
         await init();
-        if (!supabase) {
+        if (!supabaseClient) {
           errorEl.textContent = "Ошибка инициализации. Проверьте конфигурацию.";
           errorEl.style.display = "block";
           return;
@@ -136,7 +151,7 @@
       try {
         console.log("Попытка регистрации:", { email, username });
         
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
           options: {
@@ -180,8 +195,9 @@
       }
     });
 
-    document.getElementById("username").focus();
-    init();
+      document.getElementById("username").focus();
+      init();
+    })();
   </script>
 </body>
 </html>
