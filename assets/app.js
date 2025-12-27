@@ -45,22 +45,51 @@
   }
 
   // Обновляем кнопки входа/профиля
-  function updateAuthButtons(){
+  async function updateAuthButtons(){
     if (!authButtonsEl) return;
     
     const forumLinkEl = document.getElementById("forum-link");
+    const communityLinkEl = document.getElementById("community-link");
     
-    // Проверяем любую авторизацию, не только админа
-    if (window.contourAuth && window.contourAuth.isAuthenticated()) {
-      const userData = window.contourAuth.getUserData();
+    // Проверяем авторизацию через Supabase
+    let isAuth = false;
+    let userData = null;
+    
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE') {
+      try {
+        if (window.contourSupabase) {
+          isAuth = await window.contourSupabase.isAuthenticated();
+          if (isAuth) {
+            userData = await window.contourSupabase.getUserData();
+          }
+        }
+      } catch (e) {
+        console.error('Error checking auth:', e);
+      }
+    } else {
+      // Fallback на старую систему
+      if (window.contourAuth && window.contourAuth.isAuthenticated()) {
+        isAuth = true;
+        userData = window.contourAuth.getUserData();
+      }
+    }
+    
+    if (isAuth && userData) {
       authButtonsEl.innerHTML = `
         <a class="btn-link" href="profile.html" style="background: rgba(90, 200, 250, 0.15); border-color: rgba(90, 200, 250, 0.3); color: #5ac8fa;">
-          ${userData ? userData.username : "Профиль"}
+          ${userData.username || "Профиль"}
         </a>
       `;
       
+      // Показываем ссылку на наблюдения для observer/admin
+      if (communityLinkEl && (userData.level === 'observer' || userData.level === 'admin')) {
+        communityLinkEl.style.display = "inline-block";
+      } else if (communityLinkEl) {
+        communityLinkEl.style.display = "none";
+      }
+      
       // Показываем ссылку на форум только для верифицированных
-      if (forumLinkEl && userData && userData.verified) {
+      if (forumLinkEl && userData.verified) {
         forumLinkEl.style.display = "inline-block";
       } else if (forumLinkEl) {
         forumLinkEl.style.display = "none";
@@ -72,6 +101,7 @@
         </a>
       `;
       if (forumLinkEl) forumLinkEl.style.display = "none";
+      if (communityLinkEl) communityLinkEl.style.display = "none";
     }
   }
 

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>КОНТУР — Заявка на лицензию наблюдателя</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <a class="back" href="index.html">← Архив</a>
+      <div class="logo">КОНТУР</div>
+      <div class="sub">Лицензия наблюдателя</div>
+    </div>
+
+    <div class="controls">
+      <a class="btn-link" href="index.html">Архив</a>
+      <a class="btn-link" href="profile.html">Профиль</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel">
+      <div class="panel-title">Заявка на лицензию наблюдателя</div>
+      <div class="panel-body prose">
+        <p>Для подачи наблюдений в систему КОНТУР требуется лицензия наблюдателя.</p>
+        <p>Пройдите тест, чтобы получить доступ к функции создания отчётов.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="status-section" style="display: none;">
+      <div class="panel-title">Статус заявки</div>
+      <div class="panel-body">
+        <div id="application-status"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="form-section">
+      <div class="panel-title">Тест на лицензию</div>
+      <div class="panel-body">
+        <form id="license-form">
+          <div id="test-questions"></div>
+          <div id="form-error" class="note" style="display: none; color: #ef4444; margin-top: 16px;"></div>
+          <button type="submit" class="btn-link" style="width: 100%; margin-top: 24px;">
+            Отправить заявку
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel" id="admin-section" style="display: none;">
+      <div class="panel-title">Модерация заявок</div>
+      <div class="panel-body">
+        <div id="applications-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase-auth.js"></script>
+  <script src="assets/license.js"></script>
+</body>
+</html>
+

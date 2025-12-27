@@ -55,9 +55,29 @@
     </section>
   </main>
 
-  <script src="assets/auth.js"></script>
+  <script src="assets/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase-auth.js"></script>
   <script>
-    document.getElementById("register-form").addEventListener("submit", (e) => {
+    let supabase = null;
+
+    async function init() {
+      if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
+        document.getElementById("register-form").innerHTML = `
+          <div class="note" style="color: #ef4444;">
+            Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.
+          </div>
+        `;
+        return;
+      }
+
+      supabase = window.supabase.createClient(
+        window.CONTOUR_CONFIG.SUPABASE_URL,
+        window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+      );
+    }
+
+    document.getElementById("register-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value;
@@ -80,27 +100,42 @@
         return;
       }
 
-      if (!window.contourAuth) {
-        errorEl.textContent = "Ошибка загрузки системы аутентификации";
-        errorEl.style.display = "block";
-        return;
+      if (!supabase) {
+        await init();
+        if (!supabase) {
+          errorEl.textContent = "Ошибка инициализации. Проверьте конфигурацию.";
+          errorEl.style.display = "block";
+          return;
+        }
       }
 
-      const result = window.contourAuth.register(username, password, email);
-      
-      if (result.success) {
-        successEl.textContent = "Регистрация успешна! Перенаправление...";
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              username: username
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        successEl.textContent = "Регистрация успешна! Проверьте email для подтверждения. Перенаправление...";
         successEl.style.display = "block";
+        
         setTimeout(() => {
-          window.location.href = "profile.html?access=internal";
-        }, 1500);
-      } else {
-        errorEl.textContent = result.error || "Ошибка регистрации";
+          window.location.href = "profile.html";
+        }, 2000);
+      } catch (error) {
+        errorEl.textContent = error.message || "Ошибка регистрации";
         errorEl.style.display = "block";
       }
     });
 
     document.getElementById("username").focus();
+    init();
   </script>
 </body>
 </html>

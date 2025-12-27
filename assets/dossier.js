@@ -212,6 +212,9 @@
 
   elNote.textContent = entry.editorNote || "—";
 
+  // Загрузка наблюдений сообщества для этого досье
+  loadCommunityReports(entry.id);
+
   // Внутренние заметки наблюдателя (нестабильное отображение)
   const internalNoteSection = document.getElementById("internal-note-section");
   const internalNoteEl = document.getElementById("internalNote");
@@ -309,6 +312,115 @@
   }
   }
   
+  // Загрузка наблюдений сообщества
+  async function loadCommunityReports(dossierId) {
+    // Проверяем наличие Supabase
+    if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
+      return;
+    }
+
+    try {
+      const supabase = window.supabase?.createClient(
+        window.CONTOUR_CONFIG.SUPABASE_URL,
+        window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+      );
+
+      if (!supabase) return;
+
+      // Получаем текущего пользователя
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Загружаем наблюдения для этого досье
+      const { data: reports, error } = await supabase
+        .from('community_reports')
+        .select(`
+          *,
+          profiles:user_id (username, email)
+        `)
+        .eq('dossier_id', dossierId)
+        .in('status', ['final_approved', 'unofficial_approved'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading reports:', error);
+        return;
+      }
+
+      // Загружаем pending/rejected для автора и админов
+      let myReports = [];
+      if (user) {
+        const profile = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        const { data: pendingReports } = await supabase
+          .from('community_reports')
+          .select(`
+            *,
+            profiles:user_id (username, email)
+          `)
+          .eq('dossier_id', dossierId)
+          .in('status', ['pending', 'rejected'])
+          .or(`user_id.eq.${user.id}${profile?.data?.role === 'admin' ? ',status.eq.pending' : ''}`)
+          .order('created_at', { ascending: false });
+
+        if (pendingReports) {
+          myReports = pendingReports;
+        }
+      }
+
+      const allReports = [...(reports || []), ...myReports];
+      
+      if (allReports.length > 0) {
+        renderCommunityReports(allReports, user);
+      }
+    } catch (error) {
+      console.error('Error in loadCommunityReports:', error);
+    }
+  }
+
+  function renderCommunityReports(reports, currentUser) {
+    const reportsSection = document.createElement('section');
+    reportsSection.className = 'panel';
+    reportsSection.innerHTML = `
+      <div class="panel-title">Наблюдения</div>
+      <div class="panel-body">
+        ${reports.map(report => {
+          const profile = report.profiles;
+          const isUnofficial = report.status === 'unofficial_approved';
+          
+          return `
+            <div class="block" style="margin-bottom: 16px;">
+              <div class="block-head">
+                <div class="block-title">${report.title} ${isUnofficial ? '<span style="color: #60a5fa; font-size: 12px;">(неофициально)</span>' : ''}</div>
+                <div class="block-meta">${profile?.username || profile?.email || 'Пользователь'} • ${new Date(report.created_at).toLocaleDateString('ru-RU')}</div>
+              </div>
+              <div class="block-body">${report.body.replace(/\n/g, '<br>')}</div>
+              ${report.evidence ? `
+                <div style="margin-top: 12px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 13px;">
+                  <strong>Доказательства:</strong> ${report.evidence.replace(/\n/g, '<br>')}
+                </div>
+              ` : ''}
+              ${report.location ? `
+                <div style="margin-top: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.6);">
+                  Локация: ${report.location}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // Вставляем после секции материалов
+    const materialsSection = document.querySelector('.panel:has(#blocks)');
+    if (materialsSection && materialsSection.parentNode) {
+      materialsSection.parentNode.insertBefore(reportsSection, materialsSection.nextSibling);
+    }
+  }
+
   // Запускаем инициализацию
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initDossier);
