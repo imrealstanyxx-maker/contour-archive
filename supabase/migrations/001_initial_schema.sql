@@ -49,11 +49,13 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE license_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE community_reports ENABLE ROW LEVEL SECURITY;
 
--- Политики для profiles
+-- Политики для profiles (с удалением старых для идемпотентности)
+DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
 CREATE POLICY "Users can read own profile"
   ON profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admins can read all profiles" ON profiles;
 CREATE POLICY "Admins can read all profiles"
   ON profiles FOR SELECT
   USING (
@@ -63,19 +65,23 @@ CREATE POLICY "Admins can read all profiles"
     )
   );
 
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
   USING (auth.uid() = id);
 
 -- Политики для license_applications
+DROP POLICY IF EXISTS "Users can create own applications" ON license_applications;
 CREATE POLICY "Users can create own applications"
   ON license_applications FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can read own applications" ON license_applications;
 CREATE POLICY "Users can read own applications"
   ON license_applications FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can read all applications" ON license_applications;
 CREATE POLICY "Admins can read all applications"
   ON license_applications FOR SELECT
   USING (
@@ -85,6 +91,7 @@ CREATE POLICY "Admins can read all applications"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can update applications" ON license_applications;
 CREATE POLICY "Admins can update applications"
   ON license_applications FOR UPDATE
   USING (
@@ -95,6 +102,7 @@ CREATE POLICY "Admins can update applications"
   );
 
 -- Политики для community_reports
+DROP POLICY IF EXISTS "Observers can create reports" ON community_reports;
 CREATE POLICY "Observers can create reports"
   ON community_reports FOR INSERT
   WITH CHECK (
@@ -105,11 +113,13 @@ CREATE POLICY "Observers can create reports"
   );
 
 -- Чтение: final_approved + unofficial_approved - всем
+DROP POLICY IF EXISTS "Everyone can read approved reports" ON community_reports;
 CREATE POLICY "Everyone can read approved reports"
   ON community_reports FOR SELECT
   USING (status IN ('final_approved', 'unofficial_approved'));
 
 -- Чтение: pending/rejected - только автор и админы
+DROP POLICY IF EXISTS "Authors and admins can read own pending/rejected" ON community_reports;
 CREATE POLICY "Authors and admins can read own pending/rejected"
   ON community_reports FOR SELECT
   USING (
@@ -121,6 +131,7 @@ CREATE POLICY "Authors and admins can read own pending/rejected"
   );
 
 -- Обновление: только админы
+DROP POLICY IF EXISTS "Admins can update reports" ON community_reports;
 CREATE POLICY "Admins can update reports"
   ON community_reports FOR UPDATE
   USING (

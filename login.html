@@ -21,8 +21,8 @@
       <div class="panel-body">
         <form id="login-form">
           <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Логин</label>
-            <input id="username" class="input" type="text" placeholder="Введите логин" required autocomplete="username" />
+            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Email</label>
+            <input id="username" class="input" type="email" placeholder="Введите email" required autocomplete="email" />
           </div>
 
           <div style="margin-bottom: 24px;">
@@ -53,10 +53,35 @@
     let supabase = null;
 
     async function init() {
+      // Ждём загрузки Supabase SDK
+      if (typeof window.supabase === 'undefined') {
+        await new Promise((resolve) => {
+          const checkSupabase = setInterval(() => {
+            if (typeof window.supabase !== 'undefined') {
+              clearInterval(checkSupabase);
+              resolve();
+            }
+          }, 100);
+          setTimeout(() => {
+            clearInterval(checkSupabase);
+            resolve();
+          }, 5000);
+        });
+      }
+
       if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
         document.getElementById("login-form").innerHTML = `
           <div class="note" style="color: #ef4444;">
             Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.
+          </div>
+        `;
+        return;
+      }
+
+      if (typeof window.supabase === 'undefined') {
+        document.getElementById("login-form").innerHTML = `
+          <div class="note" style="color: #ef4444;">
+            Ошибка загрузки Supabase SDK. Проверьте подключение к интернету.
           </div>
         `;
         return;
@@ -68,11 +93,15 @@
       );
 
       // Проверка уже авторизованного пользователя
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
-        window.location.href = returnUrl;
-        return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+          window.location.href = returnUrl;
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking user:', error);
       }
     }
 

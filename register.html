@@ -62,10 +62,35 @@
     let supabase = null;
 
     async function init() {
+      // Ждём загрузки Supabase SDK
+      if (typeof window.supabase === 'undefined') {
+        await new Promise((resolve) => {
+          const checkSupabase = setInterval(() => {
+            if (typeof window.supabase !== 'undefined') {
+              clearInterval(checkSupabase);
+              resolve();
+            }
+          }, 100);
+          setTimeout(() => {
+            clearInterval(checkSupabase);
+            resolve();
+          }, 5000);
+        });
+      }
+
       if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
         document.getElementById("register-form").innerHTML = `
           <div class="note" style="color: #ef4444;">
             Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.
+          </div>
+        `;
+        return;
+      }
+
+      if (typeof window.supabase === 'undefined') {
+        document.getElementById("register-form").innerHTML = `
+          <div class="note" style="color: #ef4444;">
+            Ошибка загрузки Supabase SDK. Проверьте подключение к интернету.
           </div>
         `;
         return;
