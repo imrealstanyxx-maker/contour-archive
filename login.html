@@ -48,9 +48,10 @@
 
   <script src="assets/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-auth.js"></script>
   <script>
-    let supabase = null;
+    (function() {
+      'use strict';
+      let supabaseClient = null;
 
     async function init() {
       // Ждём загрузки Supabase SDK
@@ -87,14 +88,28 @@
         return;
       }
 
-      supabase = window.supabase.createClient(
-        window.CONTOUR_CONFIG.SUPABASE_URL,
-        window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-      );
+        try {
+          supabaseClient = window.supabase.createClient(
+            window.CONTOUR_CONFIG.SUPABASE_URL,
+            window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+          );
+          console.log("Supabase клиент создан успешно");
+        } catch (error) {
+          console.error("Ошибка создания Supabase клиента:", error);
+          const formEl = document.getElementById("login-form");
+          if (formEl) {
+            formEl.innerHTML = `
+              <div class="note" style="color: #ef4444;">
+                Ошибка инициализации Supabase: ${error.message}
+              </div>
+            `;
+          }
+          return;
+        }
 
-      // Проверка уже авторизованного пользователя
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // Проверка уже авторизованного пользователя
+        try {
+          const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
           const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
           window.location.href = returnUrl;
@@ -119,9 +134,9 @@
         return;
       }
 
-      if (!supabase) {
+      if (!supabaseClient) {
         await init();
-        if (!supabase) {
+        if (!supabaseClient) {
           errorEl.textContent = "Ошибка инициализации. Проверьте конфигурацию.";
           errorEl.style.display = "block";
           return;
@@ -129,7 +144,7 @@
       }
 
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
           email,
           password
         });
@@ -144,10 +159,11 @@
       }
     });
 
-    // Автоматический фокус на поле логина
-    document.getElementById("username").focus();
-    
-    init();
+      // Автоматический фокус на поле логина
+      document.getElementById("username").focus();
+      
+      init();
+    })();
   </script>
 </body>
 </html>
