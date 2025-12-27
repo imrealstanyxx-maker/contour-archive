@@ -287,8 +287,27 @@
       : "rgba(255, 255, 255, 0.1)";
     favoriteBtn.style.color = isFavorite ? "#5ac8fa" : "rgba(255, 255, 255, 0.8)";
     
-    favoriteBtn.addEventListener("click", () => {
-      let favs = JSON.parse(localStorage.getItem("contour_favorites") || "[]");
+    favoriteBtn.addEventListener("click", async () => {
+      // Получаем ID пользователя
+      let userId = null;
+      if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+        try {
+          const supabase = window.supabase.createClient(
+            window.CONTOUR_CONFIG.SUPABASE_URL,
+            window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+          );
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) userId = user.id;
+        } catch (e) {
+          // Игнорируем ошибки
+        }
+      } else if (window.contourAuth && window.contourAuth.isAuthenticated()) {
+        const userData = window.contourAuth.getUserData();
+        if (userData) userId = userData.id || 'local';
+      }
+      
+      const favoritesKey = userId ? `contour_favorites_${userId}` : "contour_favorites";
+      let favs = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
       if (isFavorite) {
         favs = favs.filter(id => id !== entry.id);
         favoriteBtn.textContent = "☆ Добавить в избранное";
@@ -302,7 +321,7 @@
         favoriteBtn.style.borderColor = "rgba(90, 200, 250, 0.3)";
         favoriteBtn.style.color = "#5ac8fa";
       }
-      localStorage.setItem("contour_favorites", JSON.stringify(favs));
+      localStorage.setItem(favoritesKey, JSON.stringify(favs));
     });
     
     const noteContainer = document.getElementById("editorNote").parentElement;

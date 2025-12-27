@@ -73,7 +73,7 @@
     const roleText = {
       'user': 'Пользователь',
       'observer': 'Наблюдатель',
-      'admin': 'Администратор (полный доступ)'
+      'admin': 'Администратор'
     };
 
     // Информация о пользователе
@@ -108,9 +108,9 @@
         const favorites = JSON.parse(localStorage.getItem("contour_favorites") || "[]");
         
         const statsRows = [
-          { k: "Просмотрено досье", v: viewHistory.length },
-          { k: "В избранном", v: favorites.length },
-          { k: "Наблюдений отправлено", v: stats.reportsCount },
+          { k: "Просмотрено досье", v: stats.viewHistoryCount || 0 },
+          { k: "В избранном", v: stats.favoritesCount || 0 },
+          { k: "Наблюдений отправлено", v: stats.reportsCount || 0 },
           { k: "Дней в системе", v: Math.floor((new Date() - new Date(userProfile?.created_at || currentUser.created_at)) / (1000 * 60 * 60 * 24)) }
         ];
 
@@ -159,14 +159,46 @@
       .select('*', { count: 'exact', head: true })
       .eq('user_id', currentUser.id);
     
+    // Очищаем старую статистику если пользователь новый
+    const userCreated = new Date(userProfile?.created_at || currentUser.created_at);
+    const hoursSinceCreation = (new Date() - userCreated) / (1000 * 60 * 60);
+    
+    let viewHistory = JSON.parse(localStorage.getItem("contour_view_history") || "[]");
+    let favorites = JSON.parse(localStorage.getItem("contour_favorites") || "[]");
+    
+    // Если аккаунт новый, используем персональные ключи
+    if (hoursSinceCreation < 1) {
+      const historyKey = `contour_view_history_${currentUser.id}`;
+      const favoritesKey = `contour_favorites_${currentUser.id}`;
+      viewHistory = JSON.parse(localStorage.getItem(historyKey) || "[]");
+      favorites = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
+    }
+    
     return {
-      reportsCount: count || 0
+      reportsCount: count || 0,
+      viewHistoryCount: viewHistory.length,
+      favoritesCount: favorites.length
     };
   }
 
   function renderHistoryAndFavorites() {
-    const viewHistory = JSON.parse(localStorage.getItem("contour_view_history") || "[]");
-    const favorites = JSON.parse(localStorage.getItem("contour_favorites") || "[]");
+    // Очищаем старую историю если пользователь новый (зарегистрирован менее 1 часа назад)
+    const userCreated = new Date(userProfile?.created_at || currentUser.created_at);
+    const hoursSinceCreation = (new Date() - userCreated) / (1000 * 60 * 60);
+    
+    let viewHistory = JSON.parse(localStorage.getItem("contour_view_history") || "[]");
+    let favorites = JSON.parse(localStorage.getItem("contour_favorites") || "[]");
+    
+    // Если аккаунт новый (менее 1 часа), очищаем старую историю
+    if (hoursSinceCreation < 1) {
+      const historyKey = `contour_view_history_${currentUser.id}`;
+      const favoritesKey = `contour_favorites_${currentUser.id}`;
+      
+      // Используем персональные ключи для каждого пользователя
+      viewHistory = JSON.parse(localStorage.getItem(historyKey) || "[]");
+      favorites = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
+    }
+    
     const data = Array.isArray(window.CONTOUR_DATA) ? window.CONTOUR_DATA : [];
 
     // История просмотров
