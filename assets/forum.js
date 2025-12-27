@@ -103,10 +103,18 @@ window.contourForum = (() => {
   }
 
   // Создание новой темы
-  function createTopic(title, content) {
-    if (!checkForumAccess()) return null;
+  async function createTopic(title, content) {
+    const hasAccess = await checkForumAccess();
+    if (!hasAccess) return null;
 
-    const userData = window.contourAuth.getUserData();
+    let userData = null;
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      if (window.contourSupabase) {
+        userData = await window.contourSupabase.getUserData();
+      }
+    } else if (window.contourAuth && window.contourAuth.getUserData) {
+      userData = window.contourAuth.getUserData();
+    }
     const topics = getTopics();
     
     const newTopic = {
@@ -129,10 +137,18 @@ window.contourForum = (() => {
   }
 
   // Добавление ответа
-  function addReply(topicId, content) {
-    if (!checkForumAccess()) return null;
+  async function addReply(topicId, content) {
+    const hasAccess = await checkForumAccess();
+    if (!hasAccess) return null;
 
-    const userData = window.contourAuth.getUserData();
+    let userData = null;
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      if (window.contourSupabase) {
+        userData = await window.contourSupabase.getUserData();
+      }
+    } else if (window.contourAuth && window.contourAuth.getUserData) {
+      userData = window.contourAuth.getUserData();
+    }
     const replies = getReplies(topicId);
     
     const newReply = {
