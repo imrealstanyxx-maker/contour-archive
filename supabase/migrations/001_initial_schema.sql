@@ -84,22 +84,12 @@ CREATE POLICY "Users can read own applications"
 DROP POLICY IF EXISTS "Admins can read all applications" ON license_applications;
 CREATE POLICY "Admins can read all applications"
   ON license_applications FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS "Admins can update applications" ON license_applications;
 CREATE POLICY "Admins can update applications"
   ON license_applications FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin(auth.uid()));
 
 -- Политики для community_reports
 DROP POLICY IF EXISTS "Observers can create reports" ON community_reports;

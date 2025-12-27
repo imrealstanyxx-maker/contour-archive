@@ -27,7 +27,33 @@ window.contourForum = (() => {
   // Инициализация при первой загрузке
   initDefaultTopics();
   // Проверка доступа к форуму
-  function checkForumAccess() {
+  async function checkForumAccess() {
+    // Проверяем через Supabase
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      try {
+        if (window.contourSupabase) {
+          const isAuth = await window.contourSupabase.isAuthenticated();
+          if (!isAuth) {
+            alert("Для доступа к форуму необходимо войти в систему.");
+            window.location.href = "login.html?return=forum.html";
+            return false;
+          }
+          
+          const userData = await window.contourSupabase.getUserData();
+          if (!userData || !userData.verified) {
+            alert("Для доступа к форуму необходимо верифицировать аккаунт через email. Перейдите в профиль для верификации.");
+            window.location.href = "profile.html";
+            return false;
+          }
+          
+          return true;
+        }
+      } catch (e) {
+        console.error('Error checking forum access:', e);
+      }
+    }
+    
+    // Fallback на старую систему
     if (!window.contourAuth || !window.contourAuth.isAuthenticated()) {
       alert("Для доступа к форуму необходимо войти в систему.");
       window.location.href = "login.html?return=forum.html";
