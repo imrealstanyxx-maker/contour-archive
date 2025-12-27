@@ -188,8 +188,10 @@
         return;
       }
       
+      const username = profile.username || user.user_metadata?.username || user.email?.split('@')[0] || 'user';
+      
       resolve({
-        username: profile.username || user.email?.split('@')[0] || 'user',
+        username: username,
         level: profile.role || 'user',
         email: user.email,
         verified: user.email_confirmed_at ? true : false,

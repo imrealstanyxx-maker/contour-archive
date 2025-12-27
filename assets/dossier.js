@@ -44,32 +44,9 @@
   }
 
   // Сохраняем историю просмотров
-  async function saveViewHistory(entry){
-    // Проверяем авторизацию через Supabase
-    let userId = null;
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-      try {
-        const supabase = window.supabase.createClient(
-          window.CONTOUR_CONFIG.SUPABASE_URL,
-          window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-        );
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        userId = user.id;
-      } catch (e) {
-        return;
-      }
-    } else if (window.contourAuth && window.contourAuth.isAuthenticated()) {
-      const userData = window.contourAuth.getUserData();
-      if (!userData) return;
-      userId = userData.id || 'local';
-    } else {
-      return;
-    }
-    
-    // Используем персональный ключ для каждого пользователя
-    const historyKey = userId ? `contour_view_history_${userId}` : "contour_view_history";
-    let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+  function saveViewHistory(entry){
+    if (!window.contourAuth || !window.contourAuth.isAuthenticated()) return;
+    let history = JSON.parse(localStorage.getItem("contour_view_history") || "[]");
     history.push({
       id: entry.id,
       title: entry.title,
@@ -77,7 +54,7 @@
     });
     // Оставляем только последние 50 записей
     history = history.slice(-50);
-    localStorage.setItem(historyKey, JSON.stringify(history));
+    localStorage.setItem("contour_view_history", JSON.stringify(history));
   }
 
   function canSee(entry, mode){
@@ -294,12 +271,40 @@
   }
 
   // Добавляем кнопку избранного для авторизованных пользователей
-  if (window.contourAuth && window.contourAuth.isAuthenticated()) {
-    const favorites = JSON.parse(localStorage.getItem("contour_favorites") || "[]");
+  (async () => {
+    let isAuthenticated = false;
+    let userId = null;
+    
+    // Проверяем через Supabase
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      try {
+        const supabase = window.supabase.createClient(
+          window.CONTOUR_CONFIG.SUPABASE_URL,
+          window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          isAuthenticated = true;
+          userId = user.id;
+        }
+      } catch (e) {
+        // Игнорируем ошибки
+      }
+    } else if (window.contourAuth && window.contourAuth.isAuthenticated()) {
+      isAuthenticated = true;
+      const userData = window.contourAuth.getUserData();
+      if (userData) userId = userData.id || 'local';
+    }
+    
+    if (!isAuthenticated) return;
+    
+    const favoritesKey = userId ? `contour_favorites_${userId}` : "contour_favorites";
+    const favorites = JSON.parse(localStorage.getItem(favoritesKey) || localStorage.getItem("contour_favorites") || "[]");
     const isFavorite = favorites.includes(entry.id);
     
     const favoriteBtn = document.createElement("button");
     favoriteBtn.className = "btn-link";
+    favoriteBtn.style.width = "100%";
     favoriteBtn.style.marginTop = "16px";
     favoriteBtn.textContent = isFavorite ? "★ В избранном" : "☆ Добавить в избранное";
     favoriteBtn.style.background = isFavorite 
@@ -310,27 +315,9 @@
       : "rgba(255, 255, 255, 0.1)";
     favoriteBtn.style.color = isFavorite ? "#5ac8fa" : "rgba(255, 255, 255, 0.8)";
     
-    favoriteBtn.addEventListener("click", async () => {
-      // Получаем ID пользователя
-      let userId = null;
-      if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-        try {
-          const supabase = window.supabase.createClient(
-            window.CONTOUR_CONFIG.SUPABASE_URL,
-            window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-          );
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) userId = user.id;
-        } catch (e) {
-          // Игнорируем ошибки
-        }
-      } else if (window.contourAuth && window.contourAuth.isAuthenticated()) {
-        const userData = window.contourAuth.getUserData();
-        if (userData) userId = userData.id || 'local';
-      }
-      
+    favoriteBtn.addEventListener("click", () => {
       const favoritesKey = userId ? `contour_favorites_${userId}` : "contour_favorites";
-      let favs = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
+      let favs = JSON.parse(localStorage.getItem(favoritesKey) || localStorage.getItem("contour_favorites") || "[]");
       if (isFavorite) {
         favs = favs.filter(id => id !== entry.id);
         favoriteBtn.textContent = "☆ Добавить в избранное";
@@ -347,12 +334,11 @@
       localStorage.setItem(favoritesKey, JSON.stringify(favs));
     });
     
-    const noteContainer = document.getElementById("editorNote").parentElement;
+    const noteContainer = document.getElementById("editorNote")?.parentElement;
     if (noteContainer) {
       noteContainer.appendChild(favoriteBtn);
     }
-  }
-  }
+  })();
   
   // Загрузка наблюдений сообщества
   async function loadCommunityReports(dossierId) {
