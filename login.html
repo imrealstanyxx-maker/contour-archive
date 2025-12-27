@@ -109,15 +109,19 @@
 
         // Проверка уже авторизованного пользователя
         try {
-          const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user) {
-          const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
-          window.location.href = returnUrl;
-          return;
+          const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+          if (user && !userError) {
+            console.log("Пользователь уже авторизован, перенаправление...");
+            const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+            window.location.href = returnUrl;
+            return;
+          } else {
+            console.log("Пользователь не авторизован, показываем форму входа");
+          }
+        } catch (error) {
+          console.error('Error checking user:', error);
+          // Не перенаправляем при ошибке, показываем форму входа
         }
-      } catch (error) {
-        console.error('Error checking user:', error);
-      }
     }
 
     document.getElementById("login-form").addEventListener("submit", async (e) => {
