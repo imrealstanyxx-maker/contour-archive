@@ -419,12 +419,30 @@
   saveContourState(state);
 
   // Инициализация
-  updateAuthButtons();
+  // Ждём загрузки Supabase SDK перед обновлением кнопок
+  if (typeof window.supabase !== 'undefined') {
+    updateAuthButtons();
+  } else {
+    // Ждём загрузки Supabase SDK
+    const checkSupabase = setInterval(() => {
+      if (typeof window.supabase !== 'undefined') {
+        clearInterval(checkSupabase);
+        updateAuthButtons();
+      }
+    }, 100);
+    
+    // Таймаут на случай если SDK не загрузится
+    setTimeout(() => {
+      clearInterval(checkSupabase);
+      updateAuthButtons();
+    }, 5000);
+  }
+  
   updateInternalAccessUI();
   render();
 
   // Обновляем кнопки при изменении доступа
   setInterval(() => {
     updateAuthButtons();
-  }, 1000);
+  }, 2000);
 })();
