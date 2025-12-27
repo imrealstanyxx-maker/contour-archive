@@ -349,6 +349,26 @@
     const score = calculateScore(answers);
 
     try {
+      // Проверяем и создаём профиль если его нет
+      let profile = await getUserProfile(currentUser.id);
+      if (!profile) {
+        // Создаём профиль
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: currentUser.id,
+            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+            role: 'user'
+          });
+        
+        if (profileError) {
+          console.error('Ошибка создания профиля:', profileError);
+          throw new Error('Не удалось создать профиль. Обратитесь к администратору.');
+        }
+        
+        profile = await getUserProfile(currentUser.id);
+      }
+
       const { error } = await supabase
         .from('license_applications')
         .insert({
