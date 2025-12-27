@@ -217,19 +217,53 @@
   const internalNoteEl = document.getElementById("internalNote");
   
   if (internalNoteSection && internalNoteEl) {
-    // Вероятность показа: 30%
-    const shouldShow = Math.random() < 0.3;
+    // НАКОПИТЕЛЬНАЯ ЛОГИКА: для KES-001 система "помнит" факт просмотра
+    const isAccumulativeEntry = entry.id === "KES-001";
+    let noteWasSeen = false;
     
-    if (shouldShow && entry.internalNote) {
-      // Показываем заметку
+    if (isAccumulativeEntry) {
+      try {
+        const seenNotes = JSON.parse(localStorage.getItem("contour_seen_internal_notes") || "{}");
+        noteWasSeen = seenNotes[entry.id] === true;
+      } catch (e) {
+        // localStorage недоступен или повреждён - ведём себя как обычно
+      }
+    }
+    
+    // Если заметка уже была просмотрена - всегда показываем сообщение об удалении
+    if (isAccumulativeEntry && noteWasSeen) {
       internalNoteSection.style.display = "block";
-      internalNoteEl.textContent = entry.internalNote;
-    } else {
-      // Показываем сообщение об отсутствии
-      internalNoteSection.style.display = "block";
-      internalNoteEl.textContent = "Дополнительные комментарии отсутствуют или были удалены в ходе сверки.";
+      internalNoteEl.textContent = "Комментарий был учтён и удалён в ходе последующей сверки.";
       internalNoteEl.style.color = "rgba(255, 255, 255, 0.4)";
       internalNoteEl.style.fontStyle = "italic";
+    } else {
+      // Обычная логика: вероятность показа 30%
+      const shouldShow = Math.random() < 0.3;
+      
+      if (shouldShow && entry.internalNote) {
+        // Показываем заметку
+        internalNoteSection.style.display = "block";
+        internalNoteEl.textContent = entry.internalNote;
+        internalNoteEl.style.color = "rgba(255, 255, 255, 0.6)";
+        internalNoteEl.style.fontStyle = "normal";
+        
+        // Сохраняем факт просмотра для накопительных записей
+        if (isAccumulativeEntry) {
+          try {
+            const seenNotes = JSON.parse(localStorage.getItem("contour_seen_internal_notes") || "{}");
+            seenNotes[entry.id] = true;
+            localStorage.setItem("contour_seen_internal_notes", JSON.stringify(seenNotes));
+          } catch (e) {
+            // localStorage недоступен - игнорируем
+          }
+        }
+      } else {
+        // Показываем сообщение об отсутствии
+        internalNoteSection.style.display = "block";
+        internalNoteEl.textContent = "Дополнительные комментарии отсутствуют или были удалены в ходе сверки.";
+        internalNoteEl.style.color = "rgba(255, 255, 255, 0.4)";
+        internalNoteEl.style.fontStyle = "italic";
+      }
     }
   }
 
