@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>КОНТУР — Досье</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <a class="back" href="index.html">← Архив</a>
+      <div class="logo">КОНТУР</div>
+      <div class="sub">Просмотр досье</div>
+    </div>
+
+    <div class="controls">
+      <a class="btn-link" href="about.html">О архиве</a>
+    </div>
+  </header>
+
+  <div id="internal-access-banner" class="internal-banner" style="display: none;">
+    <div class="internal-banner-content">
+      <span class="internal-banner-icon">🔓</span>
+      <span class="internal-banner-text">Внутренний доступ: АКТИВЕН</span>
+      <button id="close-banner" class="internal-banner-close">×</button>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <section class="panel">
+      <div id="head" class="panel-title">Загрузка…</div>
+      <div class="panel-body">
+        <div id="meta" class="meta"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Материалы</div>
+      <div class="panel-body">
+        <div id="blocks" class="blocks"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Примечания составителя</div>
+      <div class="panel-body">
+        <div id="editorNote" class="note"></div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <div>© Неизвестный составитель. Версия: 0.1</div>
+      <div class="tiny">Некоторые строки могли быть отредактированы. Сравнивайте формулировки.</div>
+    </footer>
+  </main>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/auth.js"></script>
+  <script src="assets/dossier.js"></script>
+</body>
+</html>

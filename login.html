@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>КОНТУР — Вход в систему</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <a class="back" href="index.html">← Архив</a>
+      <div class="logo">КОНТУР</div>
+      <div class="sub">Система внутреннего доступа</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" style="max-width: 400px; margin: 64px auto;">
+      <div class="panel-title">Вход в систему</div>
+      <div class="panel-body">
+        <form id="login-form">
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Логин</label>
+            <input id="username" class="input" type="text" placeholder="Введите логин" required autocomplete="username" />
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Пароль</label>
+            <input id="password" class="input" type="password" placeholder="Введите пароль" required autocomplete="current-password" />
+          </div>
+
+          <div id="login-error" class="note" style="display: none; color: #ef4444; margin-bottom: 16px;"></div>
+
+          <button type="submit" class="btn-link" style="width: 100%; text-align: center; justify-content: center;">
+            Войти
+          </button>
+        </form>
+
+        <div class="note" style="margin-top: 24px; text-align: center;">
+          <p style="margin: 0;">
+            Нет аккаунта? <a href="register.html" style="color: #5ac8fa;">Зарегистрироваться</a>
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/auth.js"></script>
+  <script>
+    document.getElementById("login-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+      const errorEl = document.getElementById("login-error");
+
+      errorEl.style.display = "none";
+
+      if (!username || !password) {
+        errorEl.textContent = "Заполните все поля";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      if (!window.contourAuth) {
+        errorEl.textContent = "Ошибка загрузки системы аутентификации";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      // Отладочная информация (можно убрать позже)
+      console.log("Attempting login:", username);
+      
+      const result = window.contourAuth.login(username, password);
+      
+      if (result) {
+        // Успешный вход
+        console.log("Login successful");
+        const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+        // Убираем параметр return из URL если он есть
+        const cleanReturn = returnUrl.replace(/[?&]access=internal/g, '');
+        const separator = cleanReturn.includes("?") ? "&" : "?";
+        window.location.href = cleanReturn + separator + "access=internal";
+      } else {
+        console.log("Login failed");
+        // Проверяем, существует ли пользователь
+        const registeredUsers = JSON.parse(localStorage.getItem("contour_registered_users") || "{}");
+        console.log("Registered users:", Object.keys(registeredUsers));
+        console.log("Looking for:", username.toLowerCase());
+        
+        errorEl.textContent = "Неверный логин или пароль. Проверьте правильность ввода.";
+        errorEl.style.display = "block";
+        setTimeout(() => {
+          errorEl.style.display = "none";
+        }, 5000);
+      }
+    });
+
+    // Автоматический фокус на поле логина
+    document.getElementById("username").focus();
+  </script>
+</body>
+</html>
+

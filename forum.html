@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>КОНТУР — Форум</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <a class="back" href="index.html">← Архив</a>
+      <div class="logo">КОНТУР</div>
+      <div class="sub">Форум обсуждений</div>
+    </div>
+
+    <div class="controls">
+      <a class="btn-link" href="index.html">Архив</a>
+      <a class="btn-link" href="profile.html">Профиль</a>
+      <button id="new-topic-btn" class="btn-link" style="background: rgba(52, 211, 153, 0.15); border-color: rgba(52, 211, 153, 0.3); color: #34d399;">
+        + Новая тема
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel">
+      <div class="panel-title">Правила форума</div>
+      <div class="panel-body prose">
+        <p><strong>1. Уважение к участникам</strong><br>
+        Все обсуждения должны вестись в уважительном тоне. Оскорбления, угрозы и дискриминация запрещены.</p>
+        
+        <p><strong>2. Конфиденциальность</strong><br>
+        Не раскрывайте личную информацию других участников. Не публикуйте данные, которые могут навредить безопасности.</p>
+        
+        <p><strong>3. Релевантность</strong><br>
+        Темы должны быть связаны с контурными единицами, архивом или смежными темами. Оффтоп в отдельных разделах.</p>
+        
+        <p><strong>4. Запрещённый контент</strong><br>
+        Запрещены: спам, реклама, распространение ложной информации о КЕ, попытки получить несанкционированный доступ.</p>
+        
+        <p><strong>5. Модерация</strong><br>
+        Администрация оставляет за собой право удалять сообщения и блокировать пользователей за нарушение правил.</p>
+        
+        <p><strong>6. Ответственность</strong><br>
+        Каждый участник несёт ответственность за свои сообщения. Помните: некоторые темы могут быть чувствительными.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Темы обсуждений</div>
+      <div class="panel-body">
+        <div id="topics-list" class="topics-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/auth.js"></script>
+  <script src="assets/forum.js"></script>
+</body>
+</html>
+
