@@ -55,7 +55,7 @@
     let isAuth = false;
     let userData = null;
     
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE') {
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
       try {
         if (window.contourSupabase) {
           isAuth = await window.contourSupabase.isAuthenticated();
@@ -64,7 +64,8 @@
           }
         }
       } catch (e) {
-        console.error('Error checking auth:', e);
+        // Игнорируем ошибки проверки авторизации
+        console.warn('Auth check failed, showing login button:', e);
       }
     } else {
       // Fallback на старую систему

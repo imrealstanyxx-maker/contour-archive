@@ -11,37 +11,56 @@
       return null;
     }
     
-    if (window.supabase) {
-      return window.supabase;
+    if (typeof window.supabase === 'undefined') {
+      return null; // SDK ещё не загружен
     }
     
-    // Загружаем Supabase JS SDK если ещё не загружен
-    if (typeof supabase === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-      script.async = true;
-      document.head.appendChild(script);
-      return null; // Вернёмся после загрузки
+    try {
+      return window.supabase.createClient(
+        window.CONTOUR_CONFIG.SUPABASE_URL,
+        window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+      );
+    } catch (error) {
+      console.error('Error initializing Supabase:', error);
+      return null;
     }
-    
-    return window.supabase.createClient(
-      window.CONTOUR_CONFIG.SUPABASE_URL,
-      window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-    );
   }
 
   // Проверка инициализации
   function getSupabase() {
+    if (typeof window.supabase === 'undefined') {
+      return null;
+    }
+    
     if (!supabase) {
-      supabase = initSupabase();
+      if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
+        return null;
+      }
+      
+      try {
+        supabase = window.supabase.createClient(
+          window.CONTOUR_CONFIG.SUPABASE_URL,
+          window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+        );
+      } catch (error) {
+        console.error('Error creating Supabase client:', error);
+        return null;
+      }
     }
     return supabase;
   }
 
   // Получение текущего пользователя
   async function getCurrentUser() {
+    // Ждём загрузки Supabase SDK
+    if (typeof window.supabase === 'undefined') {
+      return null;
+    }
+    
     const client = getSupabase();
-    if (!client) return null;
+    if (!client || !client.auth) {
+      return null;
+    }
     
     try {
       const { data: { user }, error } = await client.auth.getUser();
