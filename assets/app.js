@@ -8,6 +8,37 @@
 
   const data = Array.isArray(window.CONTOUR_DATA) ? window.CONTOUR_DATA : [];
 
+  // Система накопительных эффектов Контура
+  function getContourState() {
+    const stored = localStorage.getItem("contour_system_state");
+    if (!stored) {
+      return {
+        visitCount: 0,
+        hiddenEntries: [],
+        permanentSpbOffset: 0,
+        filterCount: 0,
+        lastFilterTime: null,
+        correctionsApplied: false
+      };
+    }
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return {
+        visitCount: 0,
+        hiddenEntries: [],
+        permanentSpbOffset: 0,
+        filterCount: 0,
+        lastFilterTime: null,
+        correctionsApplied: false
+      };
+    }
+  }
+
+  function saveContourState(state) {
+    localStorage.setItem("contour_system_state", JSON.stringify(state));
+  }
+
   function hasInternalAccess(){
     if (!window.contourAuth) return false;
     return window.contourAuth.hasInternalAccess();
@@ -155,6 +186,7 @@
   }
 
   function renderStats(items){
+    const state = getContourState();
     const total = items.length;
     const active = items.filter(x => (x.status || "").toUpperCase() === "ACTIVE").length;
     const unknown = items.filter(x => (x.status || "").toUpperCase() === "UNKNOWN").length;
@@ -165,11 +197,24 @@
       (x.tags || []).some(t => norm(t) === "спб")
     ).length;
 
+    // НАКОПИТЕЛЬНЫЙ ЭФФЕКТ: вероятность ошибки уменьшается с посещениями
+    // Но цена - необратимая потеря информации
+    const visitCount = state.visitCount || 0;
+    const errorProbability = Math.max(0.05, 0.15 - (visitCount * 0.01));
+    
     // КОРРЕКТНАЯ ОШИБКА: счётчики логичны, но иногда слегка неточны
-    // Это не баг, это особенность системы наблюдения
-    const correctionFactor = Math.random() < 0.15 ? (Math.random() < 0.5 ? -1 : 1) : 0;
+    const correctionFactor = Math.random() < errorProbability ? (Math.random() < 0.5 ? -1 : 1) : 0;
     const correctedTotal = total + correctionFactor;
-    const correctedSpb = spb + (Math.random() < 0.2 ? (Math.random() < 0.5 ? -1 : 0) : 0);
+    
+    // НЕОБРАТИМОСТЬ: "Следы коррекции" могут навсегда уменьшиться
+    const correctedSpb = spb + state.permanentSpbOffset + (Math.random() < errorProbability ? (Math.random() < 0.5 ? -1 : 0) : 0);
+    
+    // Если "Следы коррекции" уменьшились случайно и это первое посещение после 5-7 заходов
+    if (visitCount >= 5 && visitCount <= 7 && !state.correctionsApplied && correctedSpb < spb) {
+      state.permanentSpbOffset = -1;
+      state.correctionsApplied = true;
+      saveContourState(state);
+    }
 
     const rows = [
       { k: "Записей", v: Math.max(0, correctedTotal) },
@@ -185,6 +230,20 @@
         <div class="v">${r.v}</div>
       </div>
     `).join("");
+    
+    // Сообщение после 5-7 заходов о накопленных исправлениях
+    if (visitCount >= 5 && visitCount <= 7 && state.correctionsApplied) {
+      const noteEl = document.getElementById("contour-note");
+      if (noteEl && !noteEl.dataset.shown) {
+        noteEl.style.display = "block";
+        noteEl.innerHTML = `<div class="note" style="background: rgba(90, 200, 250, 0.1); border-color: rgba(90, 200, 250, 0.3); color: rgba(90, 200, 250, 0.9); padding: 12px; border-radius: 8px; margin: 16px 0;">Часть расхождений устранена в ходе повторного просмотра. Система наблюдения стабилизирована.</div>`;
+        noteEl.dataset.shown = "true";
+        setTimeout(() => {
+          noteEl.style.opacity = "0";
+          setTimeout(() => noteEl.style.display = "none", 300);
+        }, 5000);
+      }
+    }
   }
 
   function formatId(id, type){
@@ -221,22 +280,63 @@
   }
 
   function render(){
+    const state = getContourState();
     const q = norm(qEl.value);
     const t = typeEl.value;
     const mode = accessEl.value;
 
+    // ЗАЩИТНАЯ РЕАКЦИЯ КОНТУРА: при частых фильтрациях снижается точность
+    const now = Date.now();
+    const timeSinceLastFilter = state.lastFilterTime ? (now - state.lastFilterTime) : Infinity;
+    
+    if (timeSinceLastFilter < 2000) { // Фильтрация чаще чем раз в 2 секунды
+      state.filterCount = (state.filterCount || 0) + 1;
+    } else {
+      state.filterCount = 0;
+    }
+    
+    state.lastFilterTime = now;
+    saveContourState(state);
+
     let filtered = data
       .filter(x => accessOk(x, mode))
       .filter(x => typeOk(x, t))
-      .filter(x => matches(x, q));
+      .filter(x => matches(x, q))
+      .filter(x => !state.hiddenEntries.includes(x.id)); // НЕОБРАТИМОСТЬ: скрытые записи не возвращаются
 
     // КОРРЕКТНАЯ ОШИБКА: иногда одна запись "пропускается" фильтром
-    // Это не баг, это особенность системы наблюдения
-    // Происходит редко и только при определённых условиях
-    if (filtered.length > 3 && !q && Math.random() < 0.12) {
-      // Случайно скрываем одну запись (но не всегда одну и ту же)
+    // НАКОПИТЕЛЬНЫЙ ЭФФЕКТ: вероятность уменьшается с посещениями
+    const visitCount = state.visitCount || 0;
+    const hideProbability = Math.max(0.03, 0.12 - (visitCount * 0.01));
+    
+    // ЗАЩИТНАЯ РЕАКЦИЯ: при частых фильтрациях вероятность ошибки увеличивается
+    const adjustedProbability = state.filterCount > 5 ? Math.min(0.25, hideProbability * 1.5) : hideProbability;
+    
+    if (filtered.length > 3 && !q && Math.random() < adjustedProbability) {
+      // Случайно скрываем одну запись
       const hiddenIndex = Math.floor(Math.random() * filtered.length);
+      const hiddenEntry = filtered[hiddenIndex];
+      
+      // НЕОБРАТИМОСТЬ: если запись скрыта, она больше не вернётся
+      if (!state.hiddenEntries.includes(hiddenEntry.id)) {
+        state.hiddenEntries.push(hiddenEntry.id);
+        saveContourState(state);
+      }
+      
       filtered = filtered.filter((_, i) => i !== hiddenIndex);
+    }
+    
+    // Предупреждение при частых фильтрациях
+    if (state.filterCount > 8) {
+      const warningEl = document.getElementById("contour-warning");
+      if (warningEl) {
+        warningEl.style.display = "block";
+        warningEl.innerHTML = `<div class="note" style="background: rgba(255, 200, 0, 0.1); border-color: rgba(255, 200, 0, 0.3); color: rgba(255, 200, 0, 0.9); padding: 12px; border-radius: 8px; margin: 16px 0;">Избыточные запросы снижают достоверность выборки.</div>`;
+        setTimeout(() => {
+          warningEl.style.opacity = "0";
+          setTimeout(() => warningEl.style.display = "none", 300);
+        }, 3000);
+      }
     }
 
     // Сводку логичнее показывать по тому, что ты реально сейчас видишь
@@ -282,6 +382,11 @@
       showInternalAccessBanner();
     }
   }
+
+  // Инициализация: увеличиваем счётчик посещений
+  const state = getContourState();
+  state.visitCount = (state.visitCount || 0) + 1;
+  saveContourState(state);
 
   // Инициализация
   updateAuthButtons();
