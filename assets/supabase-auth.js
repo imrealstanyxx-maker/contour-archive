@@ -207,16 +207,43 @@
   };
 
   // Слушатель изменений состояния авторизации
-  if (typeof window.supabase !== 'undefined') {
-    const client = getSupabase();
-    if (client) {
-      client.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT') {
-          // Очистка локальных данных при выходе
-          localStorage.removeItem('contour_session');
+  // Инициализируем после загрузки страницы
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (typeof window.supabase !== 'undefined') {
+          const client = getSupabase();
+          if (client && client.auth) {
+            try {
+              client.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_OUT') {
+                  localStorage.removeItem('contour_session');
+                }
+              });
+            } catch (e) {
+              console.warn('Could not set up auth state listener:', e);
+            }
+          }
         }
-      });
-    }
+      }, 1000);
+    });
+  } else {
+    setTimeout(() => {
+      if (typeof window.supabase !== 'undefined') {
+        const client = getSupabase();
+        if (client && client.auth) {
+          try {
+            client.auth.onAuthStateChange((event, session) => {
+              if (event === 'SIGNED_OUT') {
+                localStorage.removeItem('contour_session');
+              }
+            });
+          } catch (e) {
+            console.warn('Could not set up auth state listener:', e);
+          }
+        }
+      }
+    }, 1000);
   }
 })();
 
