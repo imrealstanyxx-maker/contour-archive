@@ -73,18 +73,31 @@
     localStorage.setItem("contour_view_history", JSON.stringify(history));
   }
 
-  function canSee(entry, mode){
+  async function canSee(entry, mode){
     if (mode === "public") return entry.access === "public";
     if (mode === "leak") return entry.access === "public" || entry.access === "leak";
     if (mode === "internal") {
-      // Нужна авторизация
-      if (!window.contourAuth || !window.contourAuth.isAuthenticated()) {
+      // Проверяем авторизацию через Supabase
+      let isAuth = false;
+      if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+        try {
+          if (window.contourSupabase) {
+            isAuth = await window.contourSupabase.isAuthenticated();
+          }
+        } catch (e) {
+          // Игнорируем ошибки
+        }
+      } else if (window.contourAuth && window.contourAuth.isAuthenticated) {
+        isAuth = window.contourAuth.isAuthenticated();
+      }
+      
+      if (!isAuth) {
         return false;
       }
       
       // Секретные материалы только для админа
       if (entry.access === "internal") {
-        return hasInternalAccess();
+        return await hasInternalAccess();
       }
       
       // Обычные пользователи видят публичные и утечки

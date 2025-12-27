@@ -411,9 +411,11 @@
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("access") === "internal") {
     accessEl.value = "internal";
-    if (hasInternalAccess()) {
-      showInternalAccessBanner();
-    }
+    hasInternalAccess().then(hasAccess => {
+      if (hasAccess) {
+        showInternalAccessBanner();
+      }
+    });
   }
 
   // Инициализация: увеличиваем счётчик посещений
