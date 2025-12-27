@@ -135,26 +135,48 @@
       }
 
       try {
+        console.log("Попытка регистрации:", { email, username });
+        
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               username: username
-            }
+            },
+            emailRedirectTo: window.location.origin + '/profile.html'
           }
         });
 
-        if (error) throw error;
+        console.log("Результат регистрации:", { data, error });
 
-        successEl.textContent = "Регистрация успешна! Проверьте email для подтверждения. Перенаправление...";
-        successEl.style.display = "block";
-        
-        setTimeout(() => {
-          window.location.href = "profile.html";
-        }, 2000);
+        if (error) {
+          console.error("Ошибка регистрации:", error);
+          throw error;
+        }
+
+        if (data.user) {
+          successEl.textContent = "Регистрация успешна! Проверьте email для подтверждения (может быть в спаме). Перенаправление...";
+          successEl.style.display = "block";
+          
+          setTimeout(() => {
+            window.location.href = "profile.html";
+          }, 2000);
+        } else {
+          errorEl.textContent = "Не удалось создать пользователя. Проверьте консоль браузера (F12)";
+          errorEl.style.display = "block";
+        }
       } catch (error) {
-        errorEl.textContent = error.message || "Ошибка регистрации";
+        console.error("Исключение при регистрации:", error);
+        let errorMessage = "Ошибка регистрации";
+        
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        errorEl.textContent = errorMessage + " (откройте консоль F12 для подробностей)";
         errorEl.style.display = "block";
       }
     });
