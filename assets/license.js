@@ -352,21 +352,34 @@
       // Проверяем и создаём профиль если его нет
       let profile = await getUserProfile(currentUser.id);
       if (!profile) {
-        // Создаём профиль
-        const { error: profileError } = await supabase
+        // Создаём профиль с обработкой возможного конфликта
+        const username = currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user';
+        
+        const { data: newProfile, error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: currentUser.id,
-            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
+            username: username,
             role: 'user'
-          });
+          })
+          .select()
+          .single();
         
         if (profileError) {
-          console.error('Ошибка создания профиля:', profileError);
-          throw new Error('Не удалось создать профиль. Обратитесь к администратору.');
+          // Если профиль уже существует (например, создан триггером), просто получаем его
+          if (profileError.code === '23505') { // Unique violation
+            profile = await getUserProfile(currentUser.id);
+            if (!profile) {
+              console.error('Профиль должен был быть создан триггером, но не найден:', profileError);
+              throw new Error('Профиль не найден. Попробуйте обновить страницу.');
+            }
+          } else {
+            console.error('Ошибка создания профиля:', profileError);
+            throw new Error('Не удалось создать профиль: ' + (profileError.message || 'Неизвестная ошибка'));
+          }
+        } else {
+          profile = newProfile;
         }
-        
-        profile = await getUserProfile(currentUser.id);
       }
 
       const { error } = await supabase

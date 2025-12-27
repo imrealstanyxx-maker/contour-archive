@@ -76,9 +76,11 @@
     }
     
     if (isAuth && userData) {
+      // Используем username из профиля, если есть, иначе email до собаки
+      const displayName = userData.username || (userData.email ? userData.email.split('@')[0] : "Профиль");
       authButtonsEl.innerHTML = `
         <a class="btn-link" href="profile.html" style="background: rgba(90, 200, 250, 0.15); border-color: rgba(90, 200, 250, 0.3); color: #5ac8fa;">
-          ${userData.username || "Профиль"}
+          ${displayName}
         </a>
       `;
       

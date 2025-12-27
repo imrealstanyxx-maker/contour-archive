@@ -203,8 +203,23 @@
 
   // Проверка внутреннего доступа (admin)
   async function hasInternalAccess() {
-    const userData = await getUserData();
-    return userData && userData.level === 'admin';
+    try {
+      const userData = await getUserData();
+      if (!userData) return false;
+      
+      // Проверяем роль напрямую из профиля для надёжности
+      if (userData.level === 'admin') return true;
+      
+      // Дополнительная проверка через профиль
+      const user = await getCurrentUser();
+      if (!user) return false;
+      
+      const profile = await getUserProfile(user.id);
+      return profile && profile.role === 'admin';
+    } catch (error) {
+      console.error('Error checking internal access:', error);
+      return false;
+    }
   }
 
   // Проверка лицензии наблюдателя
