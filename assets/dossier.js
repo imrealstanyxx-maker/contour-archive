@@ -212,6 +212,27 @@
 
   elNote.textContent = entry.editorNote || "—";
 
+  // Внутренние заметки наблюдателя (нестабильное отображение)
+  const internalNoteSection = document.getElementById("internal-note-section");
+  const internalNoteEl = document.getElementById("internalNote");
+  
+  if (internalNoteSection && internalNoteEl) {
+    // Вероятность показа: 30%
+    const shouldShow = Math.random() < 0.3;
+    
+    if (shouldShow && entry.internalNote) {
+      // Показываем заметку
+      internalNoteSection.style.display = "block";
+      internalNoteEl.textContent = entry.internalNote;
+    } else {
+      // Показываем сообщение об отсутствии
+      internalNoteSection.style.display = "block";
+      internalNoteEl.textContent = "Дополнительные комментарии отсутствуют или были удалены в ходе сверки.";
+      internalNoteEl.style.color = "rgba(255, 255, 255, 0.4)";
+      internalNoteEl.style.fontStyle = "italic";
+    }
+  }
+
   // Добавляем кнопку избранного для авторизованных пользователей
   if (window.contourAuth && window.contourAuth.isAuthenticated()) {
     const favorites = JSON.parse(localStorage.getItem("contour_favorites") || "[]");
