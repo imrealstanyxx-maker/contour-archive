@@ -389,8 +389,9 @@ if (window.location.pathname.includes("forum.html")) {
 
 // Инициализация страницы темы
 if (window.location.pathname.includes("topic.html")) {
-  (() => {
-    if (!window.contourForum.checkForumAccess()) return;
+  (async () => {
+    const hasAccess = await window.contourForum.checkForumAccess();
+    if (!hasAccess) return;
 
     const topicId = new URLSearchParams(location.search).get("id");
     if (!topicId) {
