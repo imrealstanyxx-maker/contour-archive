@@ -1,9 +1,6 @@
-# GitHub Pages configuration for Jekyll (если используется)
-# Но так как это статический сайт, можно оставить пустым или удалить
+# GitHub Pages configuration
+# Статический сайт - Jekyll отключен через .nojekyll
 
-plugins:
-  - jekyll-sitemap
-
-# Отключаем Jekyll для чистого статического сайта
-theme: null
+title: КОНТУР - Архив
+description: Архив контурных единиц
 
