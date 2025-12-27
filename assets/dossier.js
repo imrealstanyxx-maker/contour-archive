@@ -173,6 +173,11 @@
     ["Первое упоминание", d.firstSeen || "—"],
     ["Связано", d.related || "—"],
   ];
+  
+  // Добавляем заметку о запаздывании, если есть
+  if (d.note) {
+    metaRows.push(["Примечание", d.note]);
+  }
 
   elMeta.innerHTML = `
     <div class="kv">

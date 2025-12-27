@@ -165,11 +165,17 @@
       (x.tags || []).some(t => norm(t) === "спб")
     ).length;
 
+    // КОРРЕКТНАЯ ОШИБКА: счётчики логичны, но иногда слегка неточны
+    // Это не баг, это особенность системы наблюдения
+    const correctionFactor = Math.random() < 0.15 ? (Math.random() < 0.5 ? -1 : 1) : 0;
+    const correctedTotal = total + correctionFactor;
+    const correctedSpb = spb + (Math.random() < 0.2 ? (Math.random() < 0.5 ? -1 : 0) : 0);
+
     const rows = [
-      { k: "Записей", v: total },
+      { k: "Записей", v: Math.max(0, correctedTotal) },
       { k: "Активных", v: active },
       { k: "Неясный статус", v: unknown },
-      { k: "Следы коррекции", v: spb }
+      { k: "Следы коррекции", v: Math.max(0, correctedSpb) }
     ];
 
     // ВАЖНО: это ровно под твой style.css (.stat .k/.v)
@@ -219,10 +225,19 @@
     const t = typeEl.value;
     const mode = accessEl.value;
 
-    const filtered = data
+    let filtered = data
       .filter(x => accessOk(x, mode))
       .filter(x => typeOk(x, t))
       .filter(x => matches(x, q));
+
+    // КОРРЕКТНАЯ ОШИБКА: иногда одна запись "пропускается" фильтром
+    // Это не баг, это особенность системы наблюдения
+    // Происходит редко и только при определённых условиях
+    if (filtered.length > 3 && !q && Math.random() < 0.12) {
+      // Случайно скрываем одну запись (но не всегда одну и ту же)
+      const hiddenIndex = Math.floor(Math.random() * filtered.length);
+      filtered = filtered.filter((_, i) => i !== hiddenIndex);
+    }
 
     // Сводку логичнее показывать по тому, что ты реально сейчас видишь
     renderStats(filtered);
@@ -230,10 +245,16 @@
     listEl.innerHTML = filtered.map(x => card(x, mode)).join("");
 
     if (!filtered.length){
+      // КОРРЕКТНАЯ ОШИБКА: "ничего не найдено" - правда, но неполная
+      const allAvailable = data.filter(x => accessOk(x, mode)).length;
+      const message = allAvailable > 0 
+        ? "Попробуй другой запрос или уровень доступа."
+        : "Попробуй другой запрос или уровень доступа.";
+      
       listEl.innerHTML = `
         <div class="card" style="pointer-events:none;">
           <div class="title">Ничего не найдено</div>
-          <div class="small">Попробуй другой запрос или уровень доступа.</div>
+          <div class="small">${message}</div>
         </div>
       `;
     }
