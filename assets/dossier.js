@@ -44,9 +44,32 @@
   }
 
   // Сохраняем историю просмотров
-  function saveViewHistory(entry){
-    if (!window.contourAuth || !window.contourAuth.isAuthenticated()) return;
-    let history = JSON.parse(localStorage.getItem("contour_view_history") || "[]");
+  async function saveViewHistory(entry){
+    // Проверяем авторизацию через Supabase
+    let userId = null;
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      try {
+        const supabase = window.supabase.createClient(
+          window.CONTOUR_CONFIG.SUPABASE_URL,
+          window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        userId = user.id;
+      } catch (e) {
+        return;
+      }
+    } else if (window.contourAuth && window.contourAuth.isAuthenticated()) {
+      const userData = window.contourAuth.getUserData();
+      if (!userData) return;
+      userId = userData.id || 'local';
+    } else {
+      return;
+    }
+    
+    // Используем персональный ключ для каждого пользователя
+    const historyKey = userId ? `contour_view_history_${userId}` : "contour_view_history";
+    let history = JSON.parse(localStorage.getItem(historyKey) || "[]");
     history.push({
       id: entry.id,
       title: entry.title,
@@ -54,7 +77,7 @@
     });
     // Оставляем только последние 50 записей
     history = history.slice(-50);
-    localStorage.setItem("contour_view_history", JSON.stringify(history));
+    localStorage.setItem(historyKey, JSON.stringify(history));
   }
 
   function canSee(entry, mode){
