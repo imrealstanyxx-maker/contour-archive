@@ -38,9 +38,25 @@
   
   function runDossier(data) {
 
-  function hasInternalAccess(){
-    if (!window.contourAuth) return false;
-    return window.contourAuth.hasInternalAccess();
+  async function hasInternalAccess(){
+    // Проверяем через Supabase
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      try {
+        if (window.contourSupabase) {
+          return await window.contourSupabase.hasInternalAccess();
+        }
+      } catch (e) {
+        console.error('Error checking internal access:', e);
+      }
+    }
+    
+    // Fallback на старую систему
+    if (window.contourAuth && window.contourAuth.hasInternalAccess) {
+      const result = window.contourAuth.hasInternalAccess();
+      return result instanceof Promise ? await result : result;
+    }
+    
+    return false;
   }
 
   // Сохраняем историю просмотров
@@ -193,8 +209,28 @@
   let materials = Array.isArray(entry.materials) ? entry.materials : [];
   
   // Добавляем внутренние материалы, только если есть полный доступ (админ)
-  if (mode === "internal" && hasInternalAccess() && Array.isArray(entry.internalMaterials)) {
-    materials = [...materials, ...entry.internalMaterials];
+  // Проверяем асинхронно и добавляем материалы после проверки
+  if (mode === "internal" && Array.isArray(entry.internalMaterials)) {
+    hasInternalAccess().then(hasAccess => {
+      if (hasAccess) {
+        const materialsEl = document.getElementById("blocks");
+        if (materialsEl) {
+          const internalBlocks = entry.internalMaterials.map(m => {
+            const isInternal = m.stamp && m.stamp.includes("INTERNAL");
+            return `
+            <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
+              <div class="block-head">
+                <div class="block-title">${m.kind || "Материал"}</div>
+                <div class="block-meta">${m.stamp || ""}</div>
+              </div>
+              <div class="block-body">${redactify(String(m.text || "")).replace(/\n/g, "<br>")}</div>
+            </div>
+            `;
+          }).join("");
+          materialsEl.insertAdjacentHTML('beforeend', internalBlocks);
+        }
+      }
+    });
   }
 
   elBlocks.innerHTML = materials.map(m => {
