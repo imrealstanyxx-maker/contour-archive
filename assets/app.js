@@ -135,8 +135,10 @@
       // Обычные пользователи видят публичные и утечки
       return item.access === "public" || item.access === "leak";
     }
+    // Публичный доступ - только публичные записи
     if (acc === "public") return item.access === "public";
-    if (acc === "leak") return item.access === "public" || item.access === "leak";
+    // Утечка - только утечки (без публичных)
+    if (acc === "leak") return item.access === "leak";
     return false;
   }
 
