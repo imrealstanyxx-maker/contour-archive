@@ -161,21 +161,28 @@
       try {
         if (window.contourSupabase) {
           hasAccess = await window.contourSupabase.hasInternalAccess();
+          console.log('Internal access check result:', hasAccess);
           if (hasAccess) {
             userData = await window.contourSupabase.getUserData();
+            console.log('User data for internal access:', userData);
           }
         }
       } catch (e) {
         console.warn('Error checking internal access:', e);
       }
     } else if (window.contourAuth && window.contourAuth.hasInternalAccess) {
-      hasAccess = window.contourAuth.hasInternalAccess();
+      const result = window.contourAuth.hasInternalAccess();
+      hasAccess = result instanceof Promise ? await result : result;
       if (hasAccess && window.contourAuth.getUserData) {
-        userData = window.contourAuth.getUserData();
+        const data = window.contourAuth.getUserData();
+        userData = data instanceof Promise ? await data : data;
       }
     }
     
-    if (hasAccess && accessEl.value === "internal") {
+    // Сохраняем результат для синхронной функции accessOk
+    internalAccessGranted = hasAccess && accessEl && accessEl.value === "internal";
+    
+    if (hasAccess && accessEl && accessEl.value === "internal") {
       body.classList.add("internal-mode");
       if (sub) {
         const displayName = userData?.username || (userData?.email ? userData.email.split('@')[0] : "");
@@ -185,6 +192,12 @@
       if (accessSelect) {
         accessSelect.style.borderColor = "rgba(90, 200, 250, 0.5)";
         accessSelect.style.background = "rgba(90, 200, 250, 0.1)";
+      }
+      
+      // Перерисовываем список, чтобы показать internal материалы
+      if (typeof renderList === 'function') {
+        const currentMode = accessEl ? accessEl.value : 'public';
+        renderList(currentMode);
       }
     } else {
       body.classList.remove("internal-mode");
@@ -216,28 +229,26 @@
     return hay.includes(q);
   }
 
+  // Глобальная переменная для хранения статуса внутреннего доступа
+  let internalAccessGranted = false;
+
   function accessOk(item, acc){
     if (acc === "internal") {
       // Для внутреннего доступа нужна авторизация
-      if (!window.contourAuth || !window.contourAuth.isAuthenticated()) {
-        if (accessEl.value === "internal") {
+      // Проверка выполняется асинхронно в updateInternalAccessUI, результат сохраняется в internalAccessGranted
+      if (!internalAccessGranted) {
+        // Если пользователь выбрал internal, но доступа нет - перенаправляем на вход
+        if (accessEl && accessEl.value === "internal") {
           setTimeout(() => {
-            window.location.href = `login.html?return=${encodeURIComponent(window.location.pathname)}`;
+            window.location.href = `login.html?return=${encodeURIComponent(window.location.pathname)}&access=internal`;
           }, 100);
-          accessEl.value = "public";
+          if (accessEl) accessEl.value = "public";
         }
         return false;
       }
       
-      // Только админ видит секретные материалы
-      // Для фильтрации возвращаем false, админ увидит материалы после загрузки через updateInternalAccessUI
-      if (item.access === "internal") {
-        // Временно скрываем, будет показано после проверки доступа
-        return false;
-      }
-      
-      // Обычные пользователи видят публичные и утечки
-      return item.access === "public" || item.access === "leak";
+      // Если есть внутренний доступ - показываем все материалы, включая internal
+      return true;
     }
     // Публичный доступ - только публичные записи
     if (acc === "public") return item.access === "public";
@@ -525,3 +536,4 @@
     updateAuthButtons();
   }, 2000);
 })();
+

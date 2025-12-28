@@ -75,7 +75,10 @@
   // Получение профиля пользователя
   async function getUserProfile(userId) {
     const client = getSupabase();
-    if (!client) return null;
+    if (!client) {
+      console.warn('Supabase client not available for getUserProfile');
+      return null;
+    }
     
     try {
       const { data, error } = await client
@@ -84,7 +87,21 @@
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        // RLS может блокировать - это нормально для неавторизованных
+        if (error.code === 'PGRST116') {
+          // No rows - профиль не найден
+          console.warn('Profile not found for user:', userId);
+          return null;
+        }
+        if (error.code === '42501' || error.code === 'PGRST301') {
+          // Permission denied - RLS блокирует
+          console.warn('RLS blocked profile access for user:', userId);
+          return null;
+        }
+        throw error;
+      }
+      
       return data;
     } catch (error) {
       console.error('Error getting profile:', error);
