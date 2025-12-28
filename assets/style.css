@@ -2,6 +2,21 @@
   box-sizing: border-box;
 }
 
+/* Цветовые схемы для уровней доступа */
+:root {
+  --access-public-color: rgba(255, 255, 255, 0.8);
+  --access-public-accent: rgba(255, 255, 255, 0.15);
+  --access-public-border: rgba(255, 255, 255, 0.2);
+  
+  --access-leak-color: #f59e0b;
+  --access-leak-accent: rgba(245, 158, 11, 0.15);
+  --access-leak-border: rgba(245, 158, 11, 0.3);
+  
+  --access-internal-color: #5ac8fa;
+  --access-internal-accent: rgba(90, 200, 250, 0.15);
+  --access-internal-border: rgba(90, 200, 250, 0.3);
+}
+
 body {
   margin: 0;
   background: #000000;
@@ -11,6 +26,84 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+/* Публичный доступ - нейтральный серый */
+body.access-public a {
+  color: var(--access-public-color);
+}
+
+body.access-public .card:hover {
+  border-color: var(--access-public-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--access-public-accent);
+}
+
+body.access-public .card::before {
+  background: linear-gradient(90deg, var(--access-public-accent), transparent);
+}
+
+body.access-public .category-section {
+  border-left-color: var(--access-public-border);
+}
+
+body.access-public .category-section .panel-title {
+  border-bottom-color: var(--access-public-border);
+}
+
+/* Утечка - оранжевый/янтарный */
+body.access-leak a {
+  color: var(--access-leak-color);
+}
+
+body.access-leak .card:hover {
+  border-color: var(--access-leak-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--access-leak-accent);
+}
+
+body.access-leak .card::before {
+  background: linear-gradient(90deg, transparent, var(--access-leak-accent), transparent);
+}
+
+body.access-leak .category-section {
+  border-left-color: var(--access-leak-border);
+}
+
+body.access-leak .category-section .panel-title {
+  border-bottom-color: var(--access-leak-border);
+}
+
+body.access-leak .input:focus,
+body.access-leak .select:focus {
+  border-color: var(--access-leak-border);
+  box-shadow: 0 0 0 4px var(--access-leak-accent);
+}
+
+/* Внутренний доступ - синий (уже есть, но обновим для консистентности) */
+body.access-internal a,
+body.internal-mode a {
+  color: var(--access-internal-color);
+}
+
+body.access-internal .card:hover,
+body.internal-mode .card:hover {
+  border-color: var(--access-internal-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--access-internal-accent);
+}
+
+body.access-internal .card::before,
+body.internal-mode .card::before {
+  background: linear-gradient(90deg, transparent, var(--access-internal-accent), transparent);
+}
+
+body.access-internal .category-section,
+body.internal-mode .category-section {
+  border-left-color: var(--access-internal-border);
+}
+
+body.access-internal .category-section .panel-title,
+body.internal-mode .category-section .panel-title {
+  border-bottom-color: var(--access-internal-border);
 }
 
 a {

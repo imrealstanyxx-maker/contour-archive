@@ -386,6 +386,24 @@
     }
   }
 
+  // Обновление цветовой схемы по уровню доступа
+  function updateAccessTheme() {
+    const acc = accessEl ? accessEl.value : "public";
+    const body = document.body;
+    
+    // Удаляем все классы доступа
+    body.classList.remove("access-public", "access-leak", "access-internal");
+    
+    // Добавляем нужный класс
+    if (acc === "public") {
+      body.classList.add("access-public");
+    } else if (acc === "leak") {
+      body.classList.add("access-leak");
+    } else if (acc === "internal") {
+      body.classList.add("access-internal");
+    }
+  }
+
   // Инициализация
   function init() {
     // Обработчики событий
@@ -397,12 +415,14 @@
     }
     if (accessEl) {
       accessEl.addEventListener("change", () => {
+        updateAccessTheme();
         renderList();
         updateInternalAccessUI();
       });
     }
 
     // Первичная загрузка
+    updateAccessTheme();
     updateInternalAccessUI();
     renderList();
   }
