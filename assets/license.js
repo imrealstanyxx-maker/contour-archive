@@ -76,43 +76,64 @@
   let currentUser = null;
   let userProfile = null;
 
+  function showError(message, containerId = 'form-section') {
+    try {
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = `
+          <div class="note" style="color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3);">
+            <strong>Сбой компиляции.</strong> ${message || 'Данные недоступны.'}
+          </div>
+        `;
+      }
+    } catch (e) {
+      console.error('Error showing error message:', e);
+    }
+  }
+
   async function init() {
-    // Проверка конфигурации
-    if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
-      document.getElementById('form-section').innerHTML = `
-        <div class="note" style="color: #ef4444;">
-          Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.
-        </div>
-      `;
-      return;
+    try {
+      // Проверка конфигурации
+      if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
+        showError('Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.');
+        return;
+      }
+
+      if (typeof window.supabase === 'undefined') {
+        showError('Не удалось загрузить Supabase SDK. Проверьте подключение к интернету.');
+        return;
+      }
+
+      // Инициализация Supabase
+      supabase = window.supabase.createClient(
+        window.CONTOUR_CONFIG.SUPABASE_URL,
+        window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
+      );
+
+      // Проверка авторизации
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        window.location.href = 'login.html?return=license.html';
+        return;
+      }
+
+      currentUser = user;
+      userProfile = await getUserProfile(user.id);
+
+      // Проверка роли
+      if (userProfile && userProfile.role === 'admin') {
+        await loadAdminPanel();
+      }
+
+      // Загрузка статуса заявки
+      await loadApplicationStatus();
+
+      // Рендер формы
+      renderTestForm();
+    } catch (error) {
+      console.error('Error initializing license page:', error);
+      showError(error.message || 'Ошибка инициализации страницы.');
     }
-
-    // Инициализация Supabase
-    supabase = window.supabase.createClient(
-      window.CONTOUR_CONFIG.SUPABASE_URL,
-      window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-    );
-
-    // Проверка авторизации
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.href = 'login.html?return=license.html';
-      return;
-    }
-
-    currentUser = user;
-    userProfile = await getUserProfile(user.id);
-
-    // Проверка роли
-    if (userProfile && userProfile.role === 'admin') {
-      await loadAdminPanel();
-    }
-
-    // Загрузка статуса заявки
-    await loadApplicationStatus();
-
-    // Рендер формы
-    renderTestForm();
   }
 
   async function getUserProfile(userId) {
