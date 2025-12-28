@@ -33,9 +33,6 @@
           <div style="margin-bottom: 24px;">
             <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Email</label>
             <input id="email" class="input" type="email" placeholder="Введите email" required autocomplete="email" />
-            <div class="note" style="margin-top: 8px; font-size: 12px;">
-              На этот email будет отправлен код для верификации аккаунта
-            </div>
           </div>
 
           <div id="register-error" class="note" style="display: none; color: #ef4444; margin-bottom: 16px;"></div>
@@ -55,160 +52,83 @@
     </section>
   </main>
 
-  <script src="assets/config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (function() {
       'use strict';
-      let supabaseClient = null;
 
-      async function init() {
-      // Ждём загрузки Supabase SDK
-      if (typeof window.supabase === 'undefined') {
-        await new Promise((resolve) => {
-          const checkSupabase = setInterval(() => {
-            if (typeof window.supabase !== 'undefined') {
-              clearInterval(checkSupabase);
-              resolve();
-            }
-          }, 100);
-          setTimeout(() => {
-            clearInterval(checkSupabase);
-            resolve();
-          }, 5000);
-        });
-      }
+      document.getElementById("register-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const email = document.getElementById("email").value.trim();
+        const errorEl = document.getElementById("register-error");
+        const successEl = document.getElementById("register-success");
 
-      // Проверка конфигурации Supabase (опционально)
-      if (!window.CONTOUR_CONFIG) {
-        // Ждём загрузки config.js
-        let configAttempts = 0;
-        while (!window.CONTOUR_CONFIG && configAttempts < 50) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          configAttempts++;
-        }
-      }
+        errorEl.style.display = "none";
+        successEl.style.display = "none";
 
-      if (!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.SUPABASE_URL || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
-        document.getElementById("register-form").innerHTML = `
-          <div class="note" style="color: #ef4444;">
-            Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.
-          </div>
-        `;
-        return;
-      }
-
-      if (typeof window.supabase === 'undefined') {
-        document.getElementById("register-form").innerHTML = `
-          <div class="note" style="color: #ef4444;">
-            Ошибка загрузки Supabase SDK. Проверьте подключение к интернету.
-          </div>
-        `;
-        return;
-      }
-
-        try {
-          supabaseClient = window.supabase.createClient(
-            window.CONTOUR_CONFIG.SUPABASE_URL,
-            window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-          );
-          console.log("Supabase клиент создан успешно");
-        } catch (error) {
-          console.error("Ошибка создания Supabase клиента:", error);
-          const formEl = document.getElementById("register-form");
-          if (formEl) {
-            formEl.innerHTML = `
-              <div class="note" style="color: #ef4444;">
-                Ошибка инициализации Supabase: ${error.message}
-              </div>
-            `;
-          }
-        }
-      }
-
-    document.getElementById("register-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value;
-      const email = document.getElementById("email").value.trim();
-      const errorEl = document.getElementById("register-error");
-      const successEl = document.getElementById("register-success");
-
-      errorEl.style.display = "none";
-      successEl.style.display = "none";
-
-      if (!username || !password || !email) {
-        errorEl.textContent = "Все поля обязательны";
-        errorEl.style.display = "block";
-        return;
-      }
-
-      if (password.length < 6) {
-        errorEl.textContent = "Пароль должен быть не менее 6 символов";
-        errorEl.style.display = "block";
-        return;
-      }
-
-      if (!supabaseClient) {
-        await init();
-        if (!supabaseClient) {
-          errorEl.textContent = "Ошибка инициализации. Проверьте конфигурацию.";
+        if (!username || !password || !email) {
+          errorEl.textContent = "Все поля обязательны";
           errorEl.style.display = "block";
           return;
         }
-      }
 
-      try {
-        console.log("Попытка регистрации:", { email, username });
-        
-        const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              username: username
-            },
-            emailRedirectTo: 'https://imrealstanyxx-maker.github.io/contour-archive/profile.html'
-          }
-        });
-
-        console.log("Результат регистрации:", { data, error });
-
-        if (error) {
-          console.error("Ошибка регистрации:", error);
-          throw error;
-        }
-
-        if (data.user) {
-          successEl.textContent = "Регистрация успешна! Проверьте email для подтверждения (может быть в спаме). Перенаправление...";
-          successEl.style.display = "block";
-          
-          setTimeout(() => {
-            window.location.href = "profile.html";
-          }, 2000);
-        } else {
-          errorEl.textContent = "Не удалось создать пользователя. Проверьте консоль браузера (F12)";
+        if (password.length < 6) {
+          errorEl.textContent = "Пароль должен быть не менее 6 символов";
           errorEl.style.display = "block";
+          return;
         }
-      } catch (error) {
-        console.error("Исключение при регистрации:", error);
-        let errorMessage = "Ошибка регистрации";
+
+        // Получаем всех пользователей
+        const users = JSON.parse(localStorage.getItem('contour_users') || '{}');
         
-        if (error.message) {
-          errorMessage = error.message;
-        } else if (typeof error === 'string') {
-          errorMessage = error;
+        // Проверяем, не занят ли логин или email
+        for (const key in users) {
+          const u = users[key];
+          if (u.username === username) {
+            errorEl.textContent = "Этот логин уже занят";
+            errorEl.style.display = "block";
+            return;
+          }
+          if (u.email === email) {
+            errorEl.textContent = "Этот email уже зарегистрирован";
+            errorEl.style.display = "block";
+            return;
+          }
         }
+
+        // Создаём нового пользователя
+        const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        users[userId] = {
+          username: username,
+          email: email,
+          password: password, // В реальном приложении пароль должен быть захеширован!
+          role: 'user',
+          verified: false,
+          created_at: new Date().toISOString()
+        };
+
+        localStorage.setItem('contour_users', JSON.stringify(users));
+
+        // Автоматически входим
+        localStorage.setItem('contour_user', JSON.stringify({
+          id: userId,
+          username: username,
+          email: email,
+          role: 'user',
+          verified: false
+        }));
+
+        successEl.textContent = "Регистрация успешна! Перенаправление...";
+        successEl.style.display = "block";
         
-        errorEl.textContent = errorMessage + " (откройте консоль F12 для подробностей)";
-        errorEl.style.display = "block";
-      }
-    });
+        setTimeout(() => {
+          window.location.href = "profile.html";
+        }, 1000);
+      });
 
       document.getElementById("username").focus();
-      init();
     })();
   </script>
 </body>
 </html>
-

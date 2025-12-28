@@ -21,8 +21,8 @@
       <div class="panel-body">
         <form id="login-form">
           <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Email</label>
-            <input id="username" class="input" type="email" placeholder="Введите email" required autocomplete="email" />
+            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Логин или Email</label>
+            <input id="username" class="input" type="text" placeholder="Введите логин или email" required autocomplete="username" />
           </div>
 
           <div style="margin-bottom: 24px;">
@@ -46,175 +46,72 @@
     </section>
   </main>
 
-  <script src="assets/config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (function() {
       'use strict';
-      let supabaseClient = null;
 
-    async function init() {
-      // Ждём загрузки Supabase SDK
-      if (typeof window.supabase === 'undefined') {
-        await new Promise((resolve) => {
-          const checkSupabase = setInterval(() => {
-            if (typeof window.supabase !== 'undefined') {
-              clearInterval(checkSupabase);
-              resolve();
-            }
-          }, 100);
-          setTimeout(() => {
-            clearInterval(checkSupabase);
-            resolve();
-          }, 5000);
-        });
-      }
-
-      // Проверка конфигурации Supabase (опционально)
-      if (!window.CONTOUR_CONFIG) {
-        // Ждём загрузки config.js
-        let configAttempts = 0;
-        while (!window.CONTOUR_CONFIG && configAttempts < 50) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          configAttempts++;
-        }
-      }
-
-      if (!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.SUPABASE_URL || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
-        document.getElementById("login-form").innerHTML = `
-          <div class="note" style="color: #ef4444;">
-            Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.
-          </div>
-        `;
-        return;
-      }
-
-      if (typeof window.supabase === 'undefined') {
-        document.getElementById("login-form").innerHTML = `
-          <div class="note" style="color: #ef4444;">
-            Ошибка загрузки Supabase SDK. Проверьте подключение к интернету.
-          </div>
-        `;
-        return;
-      }
-
+      // Проверка уже авторизованного пользователя
+      const currentUser = localStorage.getItem('contour_user');
+      if (currentUser) {
         try {
-          supabaseClient = window.supabase.createClient(
-            window.CONTOUR_CONFIG.SUPABASE_URL,
-            window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-          );
-          console.log("Supabase клиент создан успешно");
-        } catch (error) {
-          console.error("Ошибка создания Supabase клиента:", error);
-          const formEl = document.getElementById("login-form");
-          if (formEl) {
-            formEl.innerHTML = `
-              <div class="note" style="color: #ef4444;">
-                Ошибка инициализации Supabase: ${error.message}
-              </div>
-            `;
-          }
+          const user = JSON.parse(currentUser);
+          const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+          window.location.href = returnUrl;
           return;
+        } catch (e) {
+          // Игнорируем ошибки парсинга
         }
-
-        // Проверка уже авторизованного пользователя
-        try {
-          const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-          if (user && !userError) {
-            console.log("Пользователь уже авторизован, перенаправление...");
-            let returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
-            
-            // Если returnUrl не содержит протокол, это относительный путь
-            if (!returnUrl.startsWith('http')) {
-              // Убеждаемся, что путь правильный
-              if (returnUrl.startsWith('/')) {
-                // Убираем начальный слэш для относительного пути
-                returnUrl = returnUrl.substring(1);
-              }
-              // Если путь начинается с contour-archive, убираем это
-              if (returnUrl.startsWith('contour-archive/')) {
-                returnUrl = returnUrl.replace('contour-archive/', '');
-              }
-            }
-            
-            console.log("Перенаправление на:", returnUrl);
-            // Небольшая задержка для обновления сессии
-            setTimeout(() => {
-              window.location.href = returnUrl;
-            }, 100);
-            return;
-          } else {
-            console.log("Пользователь не авторизован, показываем форму входа");
-          }
-        } catch (error) {
-          console.error('Error checking user:', error);
-          // Не перенаправляем при ошибке, показываем форму входа
-        }
-    }
-
-    document.getElementById("login-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value;
-      const errorEl = document.getElementById("login-error");
-
-      errorEl.style.display = "none";
-
-      if (!email || !password) {
-        errorEl.textContent = "Заполните все поля";
-        errorEl.style.display = "block";
-        return;
       }
 
-      if (!supabaseClient) {
-        await init();
-        if (!supabaseClient) {
-          errorEl.textContent = "Ошибка инициализации. Проверьте конфигурацию.";
+      document.getElementById("login-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const errorEl = document.getElementById("login-error");
+
+        errorEl.style.display = "none";
+
+        if (!username || !password) {
+          errorEl.textContent = "Заполните все поля";
           errorEl.style.display = "block";
           return;
         }
-      }
 
-      try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) throw error;
-
-        let returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+        // Получаем всех пользователей из localStorage
+        const users = JSON.parse(localStorage.getItem('contour_users') || '{}');
         
-        // Если returnUrl не содержит протокол, это относительный путь
-        if (!returnUrl.startsWith('http')) {
-          // Убеждаемся, что путь правильный
-          if (returnUrl.startsWith('/')) {
-            // Убираем начальный слэш для относительного пути
-            returnUrl = returnUrl.substring(1);
-          }
-          // Если путь начинается с contour-archive, убираем это
-          if (returnUrl.startsWith('contour-archive/')) {
-            returnUrl = returnUrl.replace('contour-archive/', '');
+        // Ищем пользователя по логину или email
+        let user = null;
+        for (const key in users) {
+          const u = users[key];
+          if ((u.username === username || u.email === username) && u.password === password) {
+            user = { ...u, id: key };
+            break;
           }
         }
-        
-        console.log("Перенаправление на:", returnUrl);
-        // Небольшая задержка для обновления сессии
-        setTimeout(() => {
-          window.location.href = returnUrl;
-        }, 200);
-      } catch (error) {
-        errorEl.textContent = error.message || "Неверный email или пароль";
-        errorEl.style.display = "block";
-      }
-    });
 
-      // Автоматический фокус на поле логина
+        if (!user) {
+          errorEl.textContent = "Неверный логин или пароль";
+          errorEl.style.display = "block";
+          return;
+        }
+
+        // Сохраняем текущего пользователя
+        localStorage.setItem('contour_user', JSON.stringify({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role || 'user',
+          verified: user.verified || false
+        }));
+
+        // Перенаправление
+        const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+        window.location.href = returnUrl;
+      });
+
       document.getElementById("username").focus();
-      
-      init();
     })();
   </script>
 </body>
 </html>
-
