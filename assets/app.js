@@ -46,6 +46,27 @@
     return item.type === t;
   }
 
+  // Определение категории по типу или id
+  function getCategory(item) {
+    // Сначала проверяем поле type
+    if (item.type) {
+      if (item.type === "КЕ-С") return "kes";
+      if (item.type === "КЕ-М") return "kem";
+      if (item.type === "КЕ-Ф") return "kef";
+    }
+    
+    // Если type нет, определяем по префиксу id
+    if (item.id) {
+      const prefix = item.id.substring(0, 3).toUpperCase();
+      if (prefix === "KES") return "kes";
+      if (prefix === "KEM") return "kem";
+      if (prefix === "KEF") return "kef";
+    }
+    
+    // По умолчанию
+    return "kes";
+  }
+
   function accessOk(item, acc) {
     // Убеждаемся, что у элемента есть поле access
     const itemAccess = item.access || "public";
