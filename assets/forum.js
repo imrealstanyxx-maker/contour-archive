@@ -252,7 +252,7 @@ if (window.location.pathname.includes("forum.html")) {
     const topicsListEl = document.getElementById("topics-list");
     const newTopicBtn = document.getElementById("new-topic-btn");
 
-    function renderTopics() {
+    async function renderTopics() {
       const topics = window.contourForum.getTopics();
       
       if (topics.length === 0) {
@@ -264,7 +264,12 @@ if (window.location.pathname.includes("forum.html")) {
         return;
       }
 
-      const userData = window.contourAuth.getUserData();
+      let userData = null;
+      if (window.contourSupabase) {
+        userData = await window.contourSupabase.getUserData();
+      } else if (window.contourAuth) {
+        userData = window.contourAuth.getUserData();
+      }
       
       topicsListEl.innerHTML = topics.map(topic => {
         const date = new Date(topic.createdAt).toLocaleString("ru-RU");
