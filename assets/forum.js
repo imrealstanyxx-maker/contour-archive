@@ -208,10 +208,21 @@ window.contourForum = (() => {
   }
 
   // Удаление темы (только для админа или автора)
-  function deleteTopic(topicId) {
-    if (!checkForumAccess()) return false;
+  async function deleteTopic(topicId) {
+    const hasAccess = await checkForumAccess();
+    if (!hasAccess) return false;
 
-    const userData = window.contourAuth.getUserData();
+    let userData = null;
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      if (window.contourSupabase) {
+        userData = await window.contourSupabase.getUserData();
+      }
+    } else if (window.contourAuth && window.contourAuth.getUserData) {
+      userData = window.contourAuth.getUserData();
+    }
+
+    if (!userData) return false;
+
     const topics = getTopics();
     const topic = topics.find(t => t.id === topicId);
 
@@ -275,7 +286,7 @@ if (window.location.pathname.includes("forum.html")) {
         const date = new Date(topic.createdAt).toLocaleString("ru-RU");
         const isPinned = topic.pinned ? "📌 " : "";
         const isLocked = topic.locked ? "🔒 " : "";
-        const canDelete = userData.level === "admin" || topic.author === userData.username;
+        const canDelete = userData && (userData.level === "admin" || topic.author === userData.username);
         
         return `
           <div class="topic-card">
@@ -291,7 +302,7 @@ if (window.location.pathname.includes("forum.html")) {
                 </div>
               </div>
               ${canDelete ? `
-                <button onclick="if(confirm('Удалить тему?')) { window.contourForum.deleteTopic('${topic.id}'); location.reload(); }" 
+                <button onclick="(async () => { if(confirm('Удалить тему?')) { await window.contourForum.deleteTopic('${topic.id}'); location.reload(); } })()" 
                         style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; margin-left: 12px;">
                   ×
                 </button>
@@ -462,7 +473,7 @@ if (window.location.pathname.includes("topic.html")) {
     `;
 
     // Отображаем ответы
-    function renderReplies() {
+    async function renderReplies() {
       const replies = window.contourForum.getReplies(topicId);
       
       if (replies.length === 0) {
@@ -474,11 +485,16 @@ if (window.location.pathname.includes("topic.html")) {
         return;
       }
 
-      const userData = window.contourAuth.getUserData();
+      let userData = null;
+      if (window.contourSupabase) {
+        userData = await window.contourSupabase.getUserData();
+      } else if (window.contourAuth) {
+        userData = window.contourAuth.getUserData();
+      }
       
       repliesList.innerHTML = replies.map(reply => {
         const date = new Date(reply.createdAt).toLocaleString("ru-RU");
-        const canDelete = userData.level === "admin" || reply.author === userData.username;
+        const canDelete = userData && (userData.level === "admin" || reply.author === userData.username);
         
         return `
           <div class="reply-card">
@@ -536,7 +552,7 @@ if (window.location.pathname.includes("topic.html")) {
       }
     });
 
-    renderReplies();
+    renderReplies().catch(err => console.error('Error rendering replies:', err));
   })();
 }
 
