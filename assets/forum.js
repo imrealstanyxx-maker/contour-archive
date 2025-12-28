@@ -46,12 +46,11 @@ window.contourForum = (() => {
             return false;
           }
           
-          // Проверяем верификацию email
+          // Проверяем верификацию email (мягкая проверка - предупреждаем, но не блокируем)
           const user = await window.contourSupabase.getCurrentUser();
           if (user && !user.email_confirmed_at) {
-            alert("Для доступа к форуму необходимо верифицировать аккаунт через email. Проверьте почту и перейдите по ссылке из письма.");
-            window.location.href = "profile.html";
-            return false;
+            // Не блокируем, но предупреждаем
+            console.warn('Email not verified, but allowing access');
           }
           
           return true;

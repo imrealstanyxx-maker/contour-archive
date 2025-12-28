@@ -212,41 +212,134 @@
 
   function renderCommunityReports(reports) {
     try {
-      const reportsSection = document.createElement('section');
-      reportsSection.className = 'panel';
-      reportsSection.innerHTML = `
-        <div class="panel-title">Наблюдения</div>
-        <div class="panel-body">
-          ${reports.map(report => {
-            const profile = report.profiles;
-            const isUnofficial = report.status === 'unofficial_approved';
-            
-            return `
-              <div class="block" style="margin-bottom: 16px;">
-                <div class="block-head">
-                  <div class="block-title">${(report.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')} ${isUnofficial ? '<span style="color: #60a5fa; font-size: 12px;">(неофициально)</span>' : ''}</div>
-                  <div class="block-meta">${(profile?.username || profile?.email || 'Пользователь').replace(/</g, '&lt;').replace(/>/g, '&gt;')} • ${new Date(report.created_at).toLocaleDateString('ru-RU')}</div>
-                </div>
-                <div class="block-body">${(report.body || '').replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                ${report.evidence ? `
-                  <div style="margin-top: 12px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 13px;">
-                    <strong>Доказательства:</strong> ${(report.evidence || '').replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-                  </div>
-                ` : ''}
-                ${report.location ? `
-                  <div style="margin-top: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.6);">
-                    Локация: ${(report.location || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-                  </div>
-                ` : ''}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `;
+      // Разделяем на approved и unofficial
+      const approved = reports.filter(r => r.status === 'final_approved');
+      const unofficial = reports.filter(r => r.status === 'unofficial_approved');
+      const pending = reports.filter(r => r.status === 'pending' || r.status === 'rejected');
 
-      const materialsSection = document.querySelector('.panel:has(#blocks)');
-      if (materialsSection && materialsSection.parentNode) {
-        materialsSection.parentNode.insertBefore(reportsSection, materialsSection.nextSibling);
+      const escapeHtml = (text) => {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+
+      // Подтверждённые наблюдения (часть досье)
+      if (approved.length > 0) {
+        const approvedSection = document.createElement('section');
+        approvedSection.className = 'panel';
+        approvedSection.innerHTML = `
+          <div class="panel-title">Подтверждённые наблюдения</div>
+          <div class="panel-body">
+            ${approved.map(report => {
+              const profile = report.profiles;
+              return `
+                <div class="block" style="margin-bottom: 16px;">
+                  <div class="block-head">
+                    <div class="block-title">${escapeHtml(report.title || '')}</div>
+                    <div class="block-meta">${escapeHtml(profile?.username || profile?.email || 'Пользователь')} • ${new Date(report.created_at).toLocaleDateString('ru-RU')}</div>
+                  </div>
+                  <div class="block-body">${escapeHtml(report.body || '').replace(/\n/g, '<br>')}</div>
+                  ${report.evidence ? `
+                    <div style="margin-top: 12px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 13px;">
+                      <strong>Доказательства:</strong> ${escapeHtml(report.evidence || '').replace(/\n/g, '<br>')}
+                    </div>
+                  ` : ''}
+                  ${report.location ? `
+                    <div style="margin-top: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.6);">
+                      Локация: ${escapeHtml(report.location || '')}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        const materialsSection = document.querySelector('.panel:has(#blocks)');
+        if (materialsSection && materialsSection.parentNode) {
+          materialsSection.parentNode.insertBefore(approvedSection, materialsSection.nextSibling);
+        }
+      }
+
+      // Неофициальные наблюдения (отдельный блок)
+      if (unofficial.length > 0) {
+        const unofficialSection = document.createElement('section');
+        unofficialSection.className = 'panel';
+        unofficialSection.style.background = 'rgba(96, 165, 250, 0.05)';
+        unofficialSection.style.borderColor = 'rgba(96, 165, 250, 0.2)';
+        unofficialSection.innerHTML = `
+          <div class="panel-title">Неофициальные наблюдения</div>
+          <div class="panel-body">
+            <div class="note" style="margin-bottom: 16px; font-size: 13px;">
+              Следующие наблюдения не включены в официальную компиляцию и могут содержать непроверенную информацию.
+            </div>
+            ${unofficial.map(report => {
+              const profile = report.profiles;
+              return `
+                <div class="block" style="margin-bottom: 16px;">
+                  <div class="block-head">
+                    <div class="block-title">${escapeHtml(report.title || '')} <span style="color: #60a5fa; font-size: 12px;">(неофициально)</span></div>
+                    <div class="block-meta">${escapeHtml(profile?.username || profile?.email || 'Пользователь')} • ${new Date(report.created_at).toLocaleDateString('ru-RU')}</div>
+                  </div>
+                  <div class="block-body">${escapeHtml(report.body || '').replace(/\n/g, '<br>')}</div>
+                  ${report.evidence ? `
+                    <div style="margin-top: 12px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 13px;">
+                      <strong>Доказательства:</strong> ${escapeHtml(report.evidence || '').replace(/\n/g, '<br>')}
+                    </div>
+                  ` : ''}
+                  ${report.location ? `
+                    <div style="margin-top: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.6);">
+                      Локация: ${escapeHtml(report.location || '')}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        const materialsSection = document.querySelector('.panel:has(#blocks)');
+        if (materialsSection && materialsSection.parentNode) {
+          materialsSection.parentNode.insertBefore(unofficialSection, materialsSection.nextSibling);
+        }
+      }
+
+      // Pending/rejected только для автора и админа
+      if (pending.length > 0) {
+        const pendingSection = document.createElement('section');
+        pendingSection.className = 'panel';
+        pendingSection.style.background = 'rgba(251, 191, 36, 0.05)';
+        pendingSection.style.borderColor = 'rgba(251, 191, 36, 0.2)';
+        pendingSection.innerHTML = `
+          <div class="panel-title">Мои заявки</div>
+          <div class="panel-body">
+            ${pending.map(report => {
+              const profile = report.profiles;
+              const statusText = report.status === 'pending' ? 'На рассмотрении' : 'Отклонено';
+              const statusColor = report.status === 'pending' ? '#fbbf24' : '#ef4444';
+              return `
+                <div class="block" style="margin-bottom: 16px;">
+                  <div class="block-head">
+                    <div class="block-title">${escapeHtml(report.title || '')} <span style="color: ${statusColor}; font-size: 12px;">(${statusText})</span></div>
+                    <div class="block-meta">${escapeHtml(profile?.username || profile?.email || 'Пользователь')} • ${new Date(report.created_at).toLocaleDateString('ru-RU')}</div>
+                  </div>
+                  <div class="block-body">${escapeHtml(report.body || '').replace(/\n/g, '<br>')}</div>
+                  ${report.admin_note ? `
+                    <div class="note" style="margin-top: 8px; font-size: 13px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3);">
+                      <strong>Примечание администратора:</strong> ${escapeHtml(report.admin_note || '')}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        const materialsSection = document.querySelector('.panel:has(#blocks)');
+        if (materialsSection && materialsSection.parentNode) {
+          materialsSection.parentNode.insertBefore(pendingSection, materialsSection.nextSibling);
+        }
       }
     } catch (e) {
       console.warn('Error rendering reports:', e);
