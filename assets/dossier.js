@@ -115,21 +115,21 @@
               
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Внешний вид</div>
+                  <div class="block-title">Как это работает</div>
                 </div>
                 <div class="block-body">${(threat.appearance || "—").replace(/\n/g, "<br>")}</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Триггер появления</div>
+                  <div class="block-title">Триггер активации</div>
                 </div>
                 <div class="block-body">${(threat.trigger || "—").replace(/\n/g, "<br>")}</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Механика охоты</div>
+                  <div class="block-title">Почему это смертельно</div>
                 </div>
                 <div class="block-body">${(threat.mechanics || "—").replace(/\n/g, "<br>")}</div>
               </div>
