@@ -1,9 +1,9 @@
 (() => {
   'use strict';
 
-  // Фрагменты данных
+  // Фрагменты данных - только связанные с KES-001 и KEM-002
   const fragments = [
-    // Уровень 0
+    // Уровень 0 - реальные фрагменты
     {
       id: 'FRAG-00A',
       name: 'README.partial',
@@ -16,20 +16,6 @@
       name: 'index.delta',
       level: 0,
       content: 'Сводка: расхождение списков обнаружено.\nРазница: 1 запись.\nПричина: отсутствует.\nПовторная сверка: отключена по инициативе составителя.',
-      tags: []
-    },
-    {
-      id: 'FRAG-00C',
-      name: 'corridor.note',
-      level: 0,
-      content: 'Не заходить в коридор после того, как он стал \'пустым\'.\n\'Пустой\' — это когда слышно, что там кто-то есть, но звук не отражается.',
-      tags: []
-    },
-    {
-      id: 'FRAG-00D',
-      name: 'witness.1',
-      level: 0,
-      content: 'Я видел карточку досье, которой нет.\nЯ нажал — и меня выбросило обратно.\nКогда я вернулся, запись уже была \'всегда\'.',
       tags: []
     },
     {
@@ -47,39 +33,83 @@
       tags: ['KEM-002']
     },
     {
-      id: 'FRAG-00G',
-      name: 'kef03.override',
+      id: 'FRAG-00K',
+      name: 'kes01.note',
       level: 0,
-      content: 'КЕФ-003: когда фраза кажется \'слишком точной\', её больше нельзя править.\nПопытка уточнить превращает смысл в событие.\nСобытие — в несчастный случай.',
-      tags: ['KEF-003']
+      content: 'KES-001: Картотека-7, ячейка 3-14.\nЛицо №0.\nЗапись внесена, карточка не обнаружена.\nПроверка показала: карточка появляется и исчезает.',
+      tags: ['KES-001']
+    },
+    // Уровень 0 - зашифрованные заглушки
+    {
+      id: 'FRAG-ENC-01',
+      name: 'vault-01.enc',
+      level: 0,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
     },
     {
-      id: 'FRAG-00H',
-      name: 'kes08.logslice',
+      id: 'FRAG-ENC-02',
+      name: 'vault-02.enc',
       level: 0,
-      content: 'Логи форума не подтверждают наличие профиля.\nНо профиль оставил ответы.\nОтветы совпадают по стилю с составителем, который уволен 2 года назад.',
-      tags: ['KES-008']
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
+    },
+    {
+      id: 'FRAG-ENC-03',
+      name: 'vault-03.enc',
+      level: 0,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
+    },
+    {
+      id: 'FRAG-ENC-04',
+      name: 'vault-04.enc',
+      level: 0,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
+    },
+    {
+      id: 'FRAG-ENC-05',
+      name: 'vault-05.enc',
+      level: 0,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
+    },
+    {
+      id: 'FRAG-ENC-06',
+      name: 'vault-06.enc',
+      level: 0,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
+    },
+    {
+      id: 'FRAG-ENC-07',
+      name: 'vault-07.enc',
+      level: 0,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
+    },
+    {
+      id: 'FRAG-ENC-08',
+      name: 'vault-08.enc',
+      level: 0,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
     },
     // Уровень 1
-    {
-      id: 'FRAG-10A',
-      name: 'incident.07',
-      level: 1,
-      content: 'ИНЦ-07:\nСверка показаний проведена вслух.\nДва свидетеля сошлись в деталях, которые не могли знать оба.\nЧерез 11 часов один найден мёртвым в ванной.\nВода была холодной. Он был горячим.\nСледов борьбы нет.',
-      tags: []
-    },
     {
       id: 'FRAG-10B',
       name: 'incident.09',
       level: 1,
       content: 'ИНЦ-09:\nВ помещении было 4 человека.\nПосле выхода каждый был уверен, что выходил пятым.\nНа видео видно, что один из них не входит в кадр ни разу.\nНо голос его слышен всегда.\nвывод прекращён по коду: CUTOFF',
-      tags: []
-    },
-    {
-      id: 'FRAG-10C',
-      name: 'containment.s7',
-      level: 1,
-      content: 'Зона С-7 существует только как расписание.\nЛюбой, кто пишет \'С-7\' полностью, исчезает из смены.\nИспользовать сокращения.\nНе оставлять подписи.',
       tags: []
     },
     {
@@ -89,12 +119,22 @@
       content: 'KES-001:\nПроверка реестров показала совпадение с закрытым делом.\nДело закрыто до того, как было открыто.\nСоставитель оставил пометку: \'не смотреть лицом\'.',
       tags: ['KES-001']
     },
+    // Уровень 1 - зашифрованные заглушки
     {
-      id: 'FRAG-10E',
-      name: 'rule.of.two',
+      id: 'FRAG-ENC-09',
+      name: 'vault-09.enc',
       level: 1,
-      content: 'Почти все потери начинаются с одного и того же:\nкто-то пытается убедиться.\nКто-то пытается уточнить.\nКто-то пытается перепроверить.\nСистема не любит вторых попыток.',
-      tags: []
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
+    },
+    {
+      id: 'FRAG-ENC-10',
+      name: 'vault-10.enc',
+      level: 1,
+      content: 'encrypted',
+      tags: [],
+      encrypted: true
     },
     // Уровень 2
     {
@@ -102,13 +142,6 @@
       name: 'cutoff.report',
       level: 2,
       content: 'КОД ЗАВЕРШЕНИЯ: CUTOFF\nУровень доступа повышен не по заявке.\nПричина: внешняя синхронизация.\n\nДальнейший вывод частично изъят.\n[██████████]\nНе присваивать класс.\nКласс присваивает оно.\n[██████████]\nПервые три случая — смерть без причины.\nЧетвёртый случай — смерть с правильной причиной.',
-      tags: []
-    },
-    {
-      id: 'FRAG-20B',
-      name: 'newclass.stub',
-      level: 2,
-      content: 'Проектирование новых классов приостановлено.\nТекущая типология описывает следы.\nНовые единицы оставляют не следы.\nОни оставляют отсутствие.\n\nЕсли это читается — значит, это уже произошло.',
       tags: []
     }
   ];
@@ -311,9 +344,11 @@
       const query = args.trim().toLowerCase();
       const available = getAvailableFragments();
       const matches = available.filter(f => 
-        f.content.toLowerCase().includes(query) ||
-        f.name.toLowerCase().includes(query) ||
-        f.tags.some(t => t.toLowerCase().includes(query))
+        !f.encrypted && (
+          f.content.toLowerCase().includes(query) ||
+          f.name.toLowerCase().includes(query) ||
+          f.tags.some(t => t.toLowerCase().includes(query))
+        )
       );
       
       if (matches.length === 0) {
@@ -443,4 +478,3 @@
   print('Введите /help для списка инструкций.');
   print('');
 })();
-
