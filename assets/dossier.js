@@ -137,73 +137,31 @@
     }
   }
 
-  // Загрузка наблюдений сообщества
+  // Загрузка наблюдений сообщества из GitHub Issues
   async function loadCommunityReports(dossierId) {
     try {
-      if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
+      // Проверяем наличие GitHub Issues API
+      if (!window.contourGitHub) {
+        console.warn('GitHub Issues API не загружен');
         return;
       }
 
-      const supabase = await waitForSupabase();
-      if (!supabase) return;
-
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError && userError.message !== 'Invalid Refresh Token: Refresh Token Not Found') {
-        console.warn('Error getting user:', userError);
-      }
-
-      // Загружаем публичные наблюдения
-      const { data: reports, error: reportsError } = await supabase
-        .from('community_reports')
-        .select(`
-          *,
-          profiles:user_id (username, email)
-        `)
-        .eq('dossier_id', dossierId)
-        .in('status', ['final_approved', 'unofficial_approved'])
-        .order('created_at', { ascending: false });
-
-      if (reportsError) {
-        // RLS может блокировать - это нормально для неавторизованных
-        if (reportsError.code !== 'PGRST301' && reportsError.code !== '42501') {
-          console.warn('Error loading reports:', reportsError);
-        }
+      // Проверяем конфигурацию
+      if (!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.GITHUB_REPO || window.CONTOUR_CONFIG.GITHUB_REPO === 'owner/repo') {
+        console.warn('GitHub репозиторий не настроен');
         return;
       }
 
-      // Загружаем pending/rejected для автора и админов
-      let myReports = [];
-      if (user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-          const { data: pendingReports, error: pendingError } = await supabase
-            .from('community_reports')
-            .select(`
-              *,
-              profiles:user_id (username, email)
-            `)
-            .eq('dossier_id', dossierId)
-            .in('status', ['pending', 'rejected'])
-            .or(`user_id.eq.${user.id}${profile?.role === 'admin' ? ',status.eq.pending' : ''}`)
-            .order('created_at', { ascending: false });
-
-          if (!pendingError && pendingReports) {
-            myReports = pendingReports;
-          }
-        } catch (e) {
-          console.warn('Error loading user reports:', e);
-        }
-      }
-
-      const allReports = [...(reports || []), ...myReports];
+      // Загружаем issues для этого досье
+      const reports = await window.contourGitHub.getIssues({ dossier_id: dossierId });
       
-      if (allReports.length > 0) {
-        renderCommunityReports(allReports);
+      // Фильтруем только approved и unofficial (публичные)
+      const publicReports = reports.filter(r => 
+        r.status === 'final_approved' || r.status === 'unofficial_approved'
+      );
+      
+      if (publicReports.length > 0) {
+        renderCommunityReports(publicReports);
       }
     } catch (error) {
       console.warn('Error in loadCommunityReports:', error);

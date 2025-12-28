@@ -1,4 +1,4 @@
-// Страница наблюдений сообщества
+// Страница наблюдений сообщества (через GitHub Issues)
 
 (() => {
   'use strict';
@@ -26,13 +26,24 @@
 
   async function init() {
     try {
-      // Проверка конфигурации
+      // Проверка конфигурации Supabase (для авторизации)
       if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
         showError('Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.');
         return;
       }
 
-      // Инициализация Supabase
+      // Проверка конфигурации GitHub
+      if (!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.GITHUB_REPO || window.CONTOUR_CONFIG.GITHUB_REPO === 'owner/repo') {
+        showError('GitHub репозиторий не настроен. Пожалуйста, настройте GITHUB_REPO в assets/config.js');
+        return;
+      }
+
+      if (!window.CONTOUR_CONFIG.GITHUB_TOKEN || window.CONTOUR_CONFIG.GITHUB_TOKEN === 'YOUR_GITHUB_TOKEN_HERE') {
+        showError('GitHub токен не настроен. Пожалуйста, настройте GITHUB_TOKEN в assets/config.js');
+        return;
+      }
+
+      // Инициализация Supabase (только для авторизации)
       if (typeof window.supabase === 'undefined') {
         showError('Не удалось загрузить Supabase SDK. Проверьте подключение к интернету.');
         return;
@@ -74,7 +85,7 @@
       // Загрузка списка досье для select
       await loadDossiers();
 
-      // Загрузка наблюдений
+      // Загрузка наблюдений из GitHub Issues
       await loadReports();
 
       // Обработчики фильтров
@@ -146,33 +157,20 @@
 
   async function loadReports() {
     try {
-      // Загружаем все доступные заявки (RLS сам отфильтрует по правам)
-      const { data, error } = await supabase
-        .from('community_reports')
-        .select(`
-          *,
-          profiles:user_id (username, email)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        // RLS может блокировать - это нормально
-        if (error.code === 'PGRST301' || error.code === '42501') {
-          console.warn('RLS blocked reports access, user may not be authenticated');
-          allReports = [];
-          renderReports();
-          return;
-        }
-        console.error('Error loading reports:', error);
-        throw error;
+      if (!window.contourGitHub) {
+        showError('GitHub Issues API не загружен. Проверьте подключение assets/github-issues.js');
+        return;
       }
 
-      allReports = data || [];
-      console.log('Loaded reports:', allReports.length, allReports);
+      // Загружаем все issues
+      const issues = await window.contourGitHub.getIssues({ state: 'all' });
+      
+      allReports = issues || [];
+      console.log('Loaded reports from GitHub:', allReports.length, allReports);
       renderReports();
     } catch (error) {
       console.error('Error loading reports:', error);
-      showError(error.message || 'Не удалось загрузить наблюдения.');
+      showError(error.message || 'Не удалось загрузить наблюдения из GitHub.');
       allReports = [];
       renderReports();
     }
@@ -187,7 +185,9 @@
       
       switch (currentFilter) {
         case 'my':
-          filtered = allReports.filter(r => r.user_id === currentUser.id);
+          // Мои отчеты - по username
+          const username = userProfile?.username || currentUser?.email?.split('@')[0] || '';
+          filtered = allReports.filter(r => r.username === username || r.username === currentUser?.email?.split('@')[0]);
           break;
         case 'unofficial':
           filtered = allReports.filter(r => r.status === 'unofficial_approved');
@@ -196,7 +196,11 @@
           filtered = allReports.filter(r => r.status === 'final_approved');
           break;
         case 'pending':
-          filtered = allReports.filter(r => r.status === 'pending' && (r.user_id === currentUser.id || userProfile?.role === 'admin'));
+          const myUsername = userProfile?.username || currentUser?.email?.split('@')[0] || '';
+          filtered = allReports.filter(r => 
+            r.status === 'pending' && 
+            (r.username === myUsername || userProfile?.role === 'admin')
+          );
           break;
         case 'moderation':
           if (userProfile?.role === 'admin') {
@@ -204,10 +208,11 @@
           }
           break;
         default:
-          // Все доступные пользователю (включая pending для автора)
+          // Все доступные пользователю
+          const myUser = userProfile?.username || currentUser?.email?.split('@')[0] || '';
           filtered = allReports.filter(r => {
             if (r.status === 'final_approved' || r.status === 'unofficial_approved') return true;
-            if (r.user_id === currentUser.id) return true; // Автор видит все свои заявки (включая pending и rejected)
+            if (r.username === myUser) return true; // Автор видит все свои заявки
             if (userProfile?.role === 'admin') return true;
             return false;
           });
@@ -218,9 +223,15 @@
         return;
       }
 
+      const escapeHtml = (text) => {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+
       container.innerHTML = filtered.map(report => {
-        const profile = report.profiles;
-        const isMyReport = report.user_id === currentUser.id;
+        const isMyReport = report.username === (userProfile?.username || currentUser?.email?.split('@')[0]);
         const isAdmin = userProfile?.role === 'admin';
         
         let statusBadge = '';
@@ -240,34 +251,18 @@
         }
 
         let adminActions = '';
-        if (isAdmin && (report.status === 'pending' || report.status === 'unofficial_approved')) {
+        if (isAdmin && report.issue_url) {
           adminActions = `
             <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-              ${report.status === 'pending' ? `
-                <button onclick="moderateReport('${report.id}', 'unofficial_approved')" class="btn-link" style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.3); color: #60a5fa; font-size: 13px;">
-                  Одобрить (неофициально)
-                </button>
-              ` : ''}
-              ${report.status === 'unofficial_approved' ? `
-                <button onclick="moderateReport('${report.id}', 'final_approved')" class="btn-link" style="background: rgba(52, 211, 153, 0.15); border-color: rgba(52, 211, 153, 0.3); color: #34d399; font-size: 13px;">
-                  Подтвердить для досье
-                </button>
-              ` : ''}
-              <button onclick="moderateReport('${report.id}', 'rejected')" class="btn-link" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 13px;">
-                Отклонить
-              </button>
-              <textarea id="admin-note-${report.id}" class="input" placeholder="Примечание администратора" style="min-height: 60px; width: 100%; margin-top: 8px;">${report.admin_note || ''}</textarea>
+              <a href="${report.issue_url}" target="_blank" class="btn-link" style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.3); color: #60a5fa; font-size: 13px; text-decoration: none;">
+                Открыть в GitHub
+              </a>
+              <div class="note" style="margin-top: 8px; font-size: 12px; background: rgba(255, 255, 255, 0.05);">
+                Для модерации откройте issue в GitHub и установите label: <code>unofficial</code>, <code>approved</code> или <code>rejected</code>
+              </div>
             </div>
           `;
         }
-
-        // Экранирование HTML для безопасности
-        const escapeHtml = (text) => {
-          if (!text) return '';
-          const div = document.createElement('div');
-          div.textContent = text;
-          return div.innerHTML;
-        };
 
         return `
           <div class="card" style="margin-bottom: 16px;">
@@ -275,7 +270,7 @@
               <div>
                 <div style="font-weight: 500; margin-bottom: 4px;">${escapeHtml(report.title)}</div>
                 <div style="font-size: 13px; color: rgba(255, 255, 255, 0.6);">
-                  ${escapeHtml(profile?.username || profile?.email || 'Пользователь')} • ${statusBadge}
+                  ${escapeHtml(report.username)} • ${statusBadge}
                   ${report.dossier_id ? ` • Связано с ${escapeHtml(report.dossier_id)}` : ''}
                 </div>
               </div>
@@ -306,12 +301,6 @@
               </div>
             ` : ''}
             
-            ${report.admin_note ? `
-              <div class="note" style="margin-top: 8px; font-size: 13px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3);">
-                <strong>Примечание администратора:</strong> ${escapeHtml(report.admin_note)}
-              </div>
-            ` : ''}
-            
             ${adminActions}
           </div>
         `;
@@ -338,14 +327,13 @@
       
       const formData = new FormData(e.target);
       const reportData = {
-        user_id: currentUser.id,
-        dossier_id: formData.get('dossier_id') || null,
         title: formData.get('title')?.trim(),
         body: formData.get('body')?.trim(),
+        dossier_id: formData.get('dossier_id') || null,
         evidence: formData.get('evidence')?.trim() || null,
         location: formData.get('location')?.trim() || null,
         observed_at: formData.get('observed_at') ? new Date(formData.get('observed_at')).toISOString() : null,
-        status: 'pending'
+        username: userProfile?.username || currentUser?.email?.split('@')[0] || 'unknown'
       };
 
       if (!reportData.title || !reportData.body) {
@@ -356,50 +344,28 @@
         return;
       }
 
-      // Убеждаемся, что профиль существует
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (!existingProfile) {
-        // Создаём профиль, если его нет
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: currentUser.id,
-            username: currentUser.email?.split('@')[0] || 'user',
-            role: 'user'
-          });
-        
-        if (profileError && profileError.code !== '23505') { // Игнорируем дубликаты
-          console.warn('Error creating profile:', profileError);
-        }
+      if (!window.contourGitHub) {
+        throw new Error('GitHub Issues API не загружен');
       }
 
-      const { data: insertedData, error } = await supabase
-        .from('community_reports')
-        .insert(reportData)
-        .select();
-
-      if (error) {
-        console.error('Error inserting report:', error);
-        throw error;
-      }
+      // Создаём issue в GitHub
+      const issue = await window.contourGitHub.createIssue(reportData);
 
       if (formError) formError.style.display = 'none';
       if (formSuccess) {
-        formSuccess.textContent = 'Наблюдение отправлено на модерацию.';
+        formSuccess.innerHTML = `Наблюдение отправлено на модерацию. <a href="${issue.html_url}" target="_blank" style="color: #5ac8fa;">Открыть в GitHub</a>`;
         formSuccess.style.display = 'block';
       }
+
+      // Очищаем форму
       e.target.reset();
+
+      // Перезагружаем список наблюдений
+      await loadReports();
       
       setTimeout(() => {
         if (formSuccess) formSuccess.style.display = 'none';
-      }, 3000);
-
-      await loadReports();
+      }, 5000);
     } catch (error) {
       console.error('Error submitting report:', error);
       const formError = document.getElementById('form-error');
@@ -412,52 +378,10 @@
     }
   }
 
-  // Глобальные функции для модерации
-  window.moderateReport = async function(reportId, newStatus) {
-    try {
-      if (!userProfile || userProfile?.role !== 'admin') {
-        alert('Только администратор может модерировать наблюдения.');
-        return;
-      }
-
-      // При переходе unofficial -> approved требуется dossier_id
-      if (newStatus === 'final_approved') {
-        const report = allReports.find(r => r.id === reportId);
-        if (!report || !report.dossier_id) {
-          alert('Для подтверждения наблюдения для досье необходимо указать связанное досье. Сначала одобрите как неофициальное и укажите dossier_id.');
-          return;
-        }
-      }
-
-      const adminNoteEl = document.getElementById(`admin-note-${reportId}`);
-      const adminNote = adminNoteEl?.value?.trim() || null;
-      
-      const { error } = await supabase
-        .from('community_reports')
-        .update({
-          status: newStatus,
-          admin_note: adminNote,
-          reviewed_at: new Date().toISOString()
-        })
-        .eq('id', reportId);
-
-      if (error) {
-        console.error('Error moderating report:', error);
-        alert('Ошибка при модерации: ' + (error.message || 'Неизвестная ошибка'));
-        return;
-      }
-
-      await loadReports();
-    } catch (error) {
-      console.error('Error in moderateReport:', error);
-      alert('Ошибка при модерации: ' + (error.message || 'Неизвестная ошибка'));
-    }
-  };
-
-  // Инициализация
+  // Инициализация при загрузке страницы
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    setTimeout(init, 100); // Небольшая задержка для загрузки скриптов
+    init();
   }
 })();
