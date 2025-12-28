@@ -12,10 +12,12 @@
   const sectionKes = document.getElementById("section-kes");
   const sectionKem = document.getElementById("section-kem");
   const sectionKef = document.getElementById("section-kef");
+  const sectionThreats = document.getElementById("section-threats");
   const sectionEmpty = document.getElementById("section-empty");
   const listKes = document.getElementById("list-kes");
   const listKem = document.getElementById("list-kem");
   const listKef = document.getElementById("list-kef");
+  const listThreats = document.getElementById("list-threats");
 
   // Данные
   const data = Array.isArray(window.CONTOUR_DATA) ? window.CONTOUR_DATA : [];
@@ -192,8 +194,12 @@
       }
     }
 
-    // Фильтруем данные строго по уровню доступа
-    const filtered = data.filter(item => {
+    // Отделяем угрозы от обычных записей
+    const threats = data.filter(item => item.isThreat === true && accessOk(item, acc));
+    const regularData = data.filter(item => !item.isThreat);
+
+    // Фильтруем обычные данные строго по уровню доступа
+    const filtered = regularData.filter(item => {
       // Сначала проверяем доступ через функцию accessOk
       if (!accessOk(item, acc)) {
         return false;
@@ -204,6 +210,16 @@
     });
 
     renderStats(filtered);
+
+    // Показываем секцию угроз (всегда, если есть угрозы)
+    if (sectionThreats && listThreats) {
+      if (threats.length > 0) {
+        sectionThreats.style.display = "block";
+        listThreats.innerHTML = threats.map(renderThreatCard).join("");
+      } else {
+        sectionThreats.style.display = "none";
+      }
+    }
 
     // Распределяем по категориям
     const kesItems = [];
