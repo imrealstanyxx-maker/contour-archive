@@ -225,13 +225,22 @@
 
     renderStats(filtered);
 
-    // Показываем секцию угроз (всегда, если есть угрозы)
-    if (sectionThreats && listThreats) {
+    // Обновляем список угроз (но не показываем автоматически)
+    if (listThreats) {
       if (threats.length > 0) {
-        sectionThreats.style.display = "block";
         listThreats.innerHTML = threats.map(renderThreatCard).join("");
+        // Показываем кнопку, если есть угрозы
+        if (toggleThreatsBtn) {
+          toggleThreatsBtn.style.display = "flex";
+        }
       } else {
-        sectionThreats.style.display = "none";
+        listThreats.innerHTML = "";
+        if (toggleThreatsBtn) {
+          toggleThreatsBtn.style.display = "none";
+        }
+        if (sectionThreats) {
+          sectionThreats.style.display = "none";
+        }
       }
     }
 
