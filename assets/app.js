@@ -38,14 +38,17 @@
   }
 
   function accessOk(item, acc) {
+    // Убеждаемся, что у элемента есть поле access
+    const itemAccess = item.access || "public";
+    
     // Публичный доступ - только публичные материалы
     if (acc === "public") {
-      return item.access === "public";
+      return itemAccess === "public";
     }
     
-    // Утечка - публичные + утечки
+    // Утечка - публичные + утечки (но НЕ внутренние)
     if (acc === "leak") {
-      return item.access === "public" || item.access === "leak";
+      return itemAccess === "public" || itemAccess === "leak";
     }
     
     // Внутренний доступ - только внутренние материалы
@@ -62,7 +65,7 @@
         return false;
       }
       // С внутренним доступом показываем только внутренние материалы
-      return item.access === "internal";
+      return itemAccess === "internal";
     }
     
     return false;
@@ -150,6 +153,18 @@
     }).join("");
   }
 
+  // Отключение внутреннего доступа
+  function revokeInternalAccess() {
+    localStorage.removeItem('contour_internal_access');
+    updateInternalAccessUI();
+    renderList();
+    
+    // Если был выбран внутренний доступ, переключаем на публичный
+    if (accessEl && accessEl.value === "internal") {
+      accessEl.value = "public";
+    }
+  }
+
   // UI внутреннего доступа
   function updateInternalAccessUI() {
     const hasAccess = hasInternalAccess();
@@ -162,6 +177,23 @@
       if (banner) {
         banner.style.display = "block";
         setTimeout(() => banner.classList.add("show"), 100);
+        
+        // Обновляем содержимое баннера с кнопкой отключения
+        const bannerContent = banner.querySelector(".internal-banner-content");
+        if (bannerContent && !bannerContent.querySelector(".revoke-btn")) {
+          const revokeBtn = document.createElement("button");
+          revokeBtn.className = "btn-link revoke-btn";
+          revokeBtn.style.cssText = "margin-left: 12px; padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #ef4444;";
+          revokeBtn.textContent = "Отключить доступ";
+          revokeBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (confirm("Отключить внутренний доступ?")) {
+              revokeInternalAccess();
+            }
+          });
+          bannerContent.appendChild(revokeBtn);
+        }
       }
 
       // Обновляем подзаголовок
