@@ -46,9 +46,17 @@ window.contourGitHub = (() => {
           if (match) {
             const key = match[1].trim();
             let value = match[2].trim();
+            
+            // Обработка null
+            if (value === 'null') {
+              meta[key] = null;
+              return;
+            }
+            
             // Убираем кавычки если есть
-            if ((value.startsWith('"') && value.endsWith('"')) || 
-                (value.startsWith("'") && value.endsWith("'"))) {
+            if ((value.startsWith('"') && value.endsWith('"')) {
+              value = value.slice(1, -1);
+            } else if ((value.startsWith("'") && value.endsWith("'"))) {
               value = value.slice(1, -1);
             }
             meta[key] = value;
