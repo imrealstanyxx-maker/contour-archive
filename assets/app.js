@@ -28,8 +28,29 @@
   }
 
   function accessOk(item, acc){
-    // Простая проверка доступа - показываем все материалы
-    return true;
+    if (acc === "public") {
+      return item.access === "public";
+    }
+    if (acc === "leak") {
+      return item.access === "public" || item.access === "leak";
+    }
+    if (acc === "internal") {
+      // Проверяем наличие внутреннего доступа
+      const hasInternalAccess = localStorage.getItem('contour_internal_access') === 'granted';
+      if (!hasInternalAccess) {
+        // Перенаправляем на страницу ввода кода
+        if (accessEl && accessEl.value === "internal") {
+          setTimeout(() => {
+            window.location.href = `internal-access.html?return=${encodeURIComponent(window.location.pathname)}`;
+          }, 100);
+          accessEl.value = "public";
+        }
+        return false;
+      }
+      // С внутренним доступом показываем всё
+      return true;
+    }
+    return false;
   }
 
   function statusBadge(status){

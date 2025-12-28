@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>КОНТУР — Внутренний доступ</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <a class="back" href="index.html">← Архив</a>
+      <div class="logo">КОНТУР</div>
+      <div class="sub">Система внутреннего доступа</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" style="max-width: 400px; margin: 64px auto;">
+      <div class="panel-title">Внутренний доступ</div>
+      <div class="panel-body">
+        <div class="note" style="margin-bottom: 24px;">
+          Для доступа к внутренним материалам требуется код доступа участника.
+        </div>
+        
+        <form id="access-form">
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 0.8); font-size: 14px;">Код доступа</label>
+            <input id="access-code" class="input" type="text" placeholder="Введите код доступа" required autocomplete="off" maxlength="10" />
+          </div>
+
+          <div id="access-error" class="note" style="display: none; color: #ef4444; margin-bottom: 16px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3);"></div>
+
+          <button type="submit" class="btn-link" style="width: 100%; text-align: center; justify-content: center;">
+            Подтвердить
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // Проверяем, не активирован ли уже доступ
+      const hasAccess = localStorage.getItem('contour_internal_access') === 'granted';
+      if (hasAccess) {
+        const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+        window.location.href = returnUrl;
+        return;
+      }
+
+      document.getElementById("access-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const code = document.getElementById("access-code").value.trim();
+        const errorEl = document.getElementById("access-error");
+
+        errorEl.style.display = "none";
+
+        if (!code) {
+          errorEl.textContent = "Введите код доступа";
+          errorEl.style.display = "block";
+          return;
+        }
+
+        // Проверяем код доступа
+        if (code === "1221") {
+          // Сохраняем доступ
+          localStorage.setItem('contour_internal_access', 'granted');
+          
+          // Перенаправление
+          const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+          window.location.href = returnUrl;
+        } else {
+          errorEl.textContent = "Неверный код доступа";
+          errorEl.style.display = "block";
+          document.getElementById("access-code").value = "";
+          document.getElementById("access-code").focus();
+        }
+      });
+
+      document.getElementById("access-code").focus();
+    })();
+  </script>
+</body>
+</html>
+
