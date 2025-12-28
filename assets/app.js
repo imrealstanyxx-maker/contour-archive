@@ -71,15 +71,16 @@
     // Убеждаемся, что у элемента есть поле access
     const itemAccess = item.access || "public";
     
-    // Строгая проверка: каждый уровень доступа показывает только свои материалы
+    // СТРОГАЯ проверка: каждый уровень доступа показывает ТОЛЬКО свои материалы
+    // Никаких пересечений между категориями
     if (acc === "public") {
       // Публичный - ТОЛЬКО публичные (не leak, не internal)
       return itemAccess === "public";
     }
     
     if (acc === "leak") {
-      // Утечка - ТОЛЬКО публичные И утечки (не internal)
-      return itemAccess === "public" || itemAccess === "leak";
+      // Утечка - ТОЛЬКО утечки (не public, не internal)
+      return itemAccess === "leak";
     }
     
     if (acc === "internal") {
