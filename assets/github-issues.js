@@ -55,9 +55,9 @@ window.contourGitHub = (() => {
             }
             
             // Убираем кавычки если есть
-            if ((value.startsWith('"') && value.endsWith('"')) {
+            if (value.startsWith('"') && value.endsWith('"')) {
               value = value.slice(1, -1);
-            } else if ((value.startsWith("'") && value.endsWith("'"))) {
+            } else if (value.startsWith("'") && value.endsWith("'")) {
               value = value.slice(1, -1);
             }
             meta[key] = value;
