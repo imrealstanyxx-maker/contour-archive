@@ -26,6 +26,13 @@
 
   async function init() {
     try {
+      // Ждём загрузки config.js
+      let configAttempts = 0;
+      while ((!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.SUPABASE_URL) && configAttempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        configAttempts++;
+      }
+
       // Проверка конфигурации Supabase (для авторизации)
       if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
         showError('Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.');
@@ -40,6 +47,19 @@
 
       if (!window.CONTOUR_CONFIG.GITHUB_TOKEN || window.CONTOUR_CONFIG.GITHUB_TOKEN === 'YOUR_GITHUB_TOKEN_HERE') {
         showError('GitHub токен не настроен. Пожалуйста, настройте GITHUB_TOKEN в assets/config.js');
+        return;
+      }
+
+      // Ждём загрузки github-issues.js
+      let githubAttempts = 0;
+      while (!window.contourGitHub && githubAttempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        githubAttempts++;
+      }
+
+      if (!window.contourGitHub) {
+        console.error('window.contourGitHub не загружен после ожидания');
+        showError('GitHub Issues API не загружен. Проверьте подключение assets/github-issues.js и откройте консоль браузера (F12) для деталей.');
         return;
       }
 
