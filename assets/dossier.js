@@ -85,6 +85,70 @@
 
       const els = getElements();
       
+      // Проверяем, является ли это угрозой
+      if (entry.isThreat) {
+        // Специальный рендер для угроз
+        if (els.head) {
+          els.head.textContent = entry.title || "Без названия";
+        }
+
+        if (els.meta) {
+          els.meta.innerHTML = `
+            <div class="kv">
+              <div class="kv-row">
+                <div class="kv-k">ID</div>
+                <div class="kv-v">${formatId(entry.id, entry.type)}</div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-k">Статус</div>
+                <div class="kv-v">${statusBadge(entry.status)}</div>
+              </div>
+            </div>
+          `;
+        }
+
+        if (els.blocks) {
+          const threat = entry.threat || {};
+          els.blocks.innerHTML = `
+            <div class="threat-section">
+              <div class="threat-warning-banner">Угроза жизни подтверждена</div>
+              
+              <div class="block threat-block">
+                <div class="block-head">
+                  <div class="block-title">Известно</div>
+                </div>
+                <div class="block-body">${(threat.known || "—").replace(/\n/g, "<br>")}</div>
+              </div>
+
+              <div class="block threat-block">
+                <div class="block-head">
+                  <div class="block-title">Что приводит к гибели</div>
+                </div>
+                <div class="block-body">${(threat.causes || "—").replace(/\n/g, "<br>")}</div>
+              </div>
+
+              <div class="block threat-block">
+                <div class="block-head">
+                  <div class="block-title">Что НЕ помогает</div>
+                </div>
+                <div class="block-body">${(threat.notHelps || "—").replace(/\n/g, "<br>")}</div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Скрываем обычные секции для угроз
+        if (els.editorNote) {
+          els.editorNote.textContent = "—";
+        }
+        if (els.internalNoteSection) {
+          els.internalNoteSection.style.display = "none";
+        }
+
+        return;
+      }
+      
+      // Обычный рендер для не-угроз
       // Заголовок
       if (els.head) {
         els.head.textContent = entry.title || "Без названия";
