@@ -130,6 +130,65 @@
     }).join("");
   }
 
+  // Проверка и отображение внутреннего доступа
+  function updateInternalAccessUI() {
+    const hasAccess = localStorage.getItem('contour_internal_access') === 'granted';
+    const banner = document.getElementById("internal-access-banner");
+    const subtitle = document.getElementById("subtitle");
+    const body = document.body;
+
+    if (hasAccess) {
+      // Показываем баннер
+      if (banner) {
+        banner.style.display = "block";
+        setTimeout(() => {
+          banner.classList.add("show");
+        }, 100);
+      }
+
+      // Обновляем подзаголовок
+      if (subtitle) {
+        subtitle.textContent = "Внутренний доступ: АКТИВЕН";
+        subtitle.style.color = "#5ac8fa";
+      }
+
+      // Добавляем класс для стилизации
+      if (body) {
+        body.classList.add("internal-mode");
+      }
+
+      // Обработчик закрытия баннера
+      const closeBtn = document.getElementById("close-banner");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+          if (banner) {
+            banner.classList.remove("show");
+            setTimeout(() => {
+              banner.style.display = "none";
+            }, 400);
+          }
+        });
+      }
+    } else {
+      // Скрываем баннер
+      if (banner) {
+        banner.classList.remove("show");
+        banner.style.display = "none";
+      }
+
+      // Возвращаем обычный подзаголовок
+      if (subtitle) {
+        subtitle.textContent = "Публичный архив контурных единиц (неофициальная компиляция)";
+        subtitle.style.color = "rgba(255, 255, 255, 0.75)";
+      }
+
+      // Убираем класс
+      if (body) {
+        body.classList.remove("internal-mode");
+      }
+    }
+  }
+
   // Инициализация
   if (qEl) {
     qEl.addEventListener("input", () => renderList());
@@ -140,6 +199,16 @@
   if (accessEl) {
     accessEl.addEventListener("change", () => renderList());
   }
+
+  // Проверяем внутренний доступ при загрузке
+  updateInternalAccessUI();
+
+  // Обновляем UI при изменении доступа
+  const originalRenderList = renderList;
+  renderList = function(mode) {
+    originalRenderList(mode);
+    updateInternalAccessUI();
+  };
 
   renderList();
 })();

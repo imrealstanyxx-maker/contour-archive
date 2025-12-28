@@ -7,11 +7,19 @@
   <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
+  <div id="internal-access-banner" class="internal-banner" style="display: none;">
+    <div class="internal-banner-content">
+      <span class="internal-banner-icon">🔓</span>
+      <span class="internal-banner-text">Внутренний доступ активирован</span>
+      <button id="close-banner" class="internal-banner-close">×</button>
+    </div>
+  </div>
+
   <header class="top">
     <div class="brand">
       <a class="back" href="index.html">← Архив</a>
       <div class="logo">КОНТУР</div>
-      <div class="sub">Просмотр досье</div>
+      <div class="sub" id="subtitle">Просмотр досье</div>
     </div>
 
     <div class="controls">
