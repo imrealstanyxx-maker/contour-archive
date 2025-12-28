@@ -588,11 +588,8 @@
         cursorIndex++;
       }
 
-      // Обновляем прозрачность текста
-      const progress = cursorIndex / textWithGlitches.length;
-      const opacity = 0.3 + (progress * 0.7);
-      editor.style.opacity = opacity.toString();
-      editor.style.color = `rgba(255, 255, 255, ${opacity})`;
+      // Текст всегда яркий
+      editor.style.color = `rgba(255, 255, 255, 1)`;
 
       // Прокручиваем вниз
       editor.scrollTop = editor.scrollHeight;
