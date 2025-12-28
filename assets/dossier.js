@@ -47,30 +47,9 @@
     throw new Error("Не удалось загрузить данные. Проверьте подключение к интернету.");
   }
 
-  // Ждём инициализации Supabase
-  async function waitForSupabase(maxWait = 5000) {
-    const startTime = Date.now();
-    
-    while (Date.now() - startTime < maxWait) {
-      if (typeof window.supabase !== 'undefined' && window.contourSupabase) {
-        const client = window.contourSupabase.getSupabase();
-        if (client) {
-          return client;
-        }
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    return null; // Supabase не обязателен для просмотра досье
-  }
-
   async function hasInternalAccess() {
-    try {
-      if (window.contourSupabase) {
-        return await window.contourSupabase.hasInternalAccess();
-      }
-    } catch (e) {
-      console.warn('Error checking internal access:', e);
+    if (window.contourAuth && window.contourAuth.hasInternalAccess) {
+      return window.contourAuth.hasInternalAccess();
     }
     return false;
   }
@@ -79,25 +58,17 @@
     if (mode === "public") return entry.access === "public";
     if (mode === "leak") return entry.access === "public" || entry.access === "leak";
     if (mode === "internal") {
-      try {
-        let isAuth = false;
-        if (window.contourSupabase) {
-          isAuth = await window.contourSupabase.isAuthenticated();
-        }
-        
-        if (!isAuth) {
-          return false;
-        }
-        
-        if (entry.access === "internal") {
-          return await hasInternalAccess();
-        }
-        
-        return entry.access === "public" || entry.access === "leak";
-      } catch (e) {
-        console.warn('Error checking access:', e);
+      const isAuth = window.contourAuth && window.contourAuth.isAuthenticated();
+      
+      if (!isAuth) {
         return false;
       }
+      
+      if (entry.access === "internal") {
+        return await hasInternalAccess();
+      }
+      
+      return entry.access === "public" || entry.access === "leak";
     }
     return false;
   }
