@@ -113,30 +113,19 @@
       availableFragments = [...availableFragments, ...basicFragments.slice(0, 8)];
     }
     
-    // Перемешиваем порядок
-    availableFragments.sort(() => Math.random() - 0.5);
-    
-    // Удаляем 1-3 случайных элемента (нестабильность)
-    const removeCount = Math.random() < 0.3 ? 1 : (Math.random() < 0.6 ? 2 : 3);
-    for (let i = 0; i < removeCount && availableFragments.length > 3; i++) {
-      const randomIndex = Math.floor(Math.random() * availableFragments.length);
-      availableFragments.splice(randomIndex, 1);
-    }
-    
     // Фильтруем фрагменты, связанные с KES-001 и KEM-002
     const allowedFragments = availableFragments.filter(f => {
       return f.includes('КЕ-С/001') || f.includes('КЕ-М/002') || 
              f.includes('лестничн') || f.includes('Лицо №0') ||
-             f.includes('Картотека-7');
+             f.includes('Картотека-7') || f.includes('КЕ-С/001') || f.includes('КЕ-М/002');
     });
+    
+    // Перемешиваем порядок
+    allowedFragments.sort(() => Math.random() - 0.5);
     
     // Добавляем строку-заглушку в конце
     availableFragments = [...allowedFragments];
-    if (availableFragments.length < baseFragments.filter(f => f.weight === 1).length) {
-      availableFragments.push("Список сокращён. Часть материалов исключена и зашифрована.");
-    } else {
-      availableFragments.push("Список сокращён. Часть материалов исключена и зашифрована.");
-    }
+    availableFragments.push("Список сокращён. Часть материалов исключена и зашифрована.");
     
     // Сохраняем состояние
     savePartialState(state);
