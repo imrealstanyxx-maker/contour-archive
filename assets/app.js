@@ -159,6 +159,7 @@
 
   // Рендер одной карточки
   function renderCard(item) {
+    const settings = window.getContourSettings ? window.getContourSettings() : {};
     const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
     const itemAccess = item.access || "public";
     let accessBadge = "";
@@ -173,6 +174,36 @@
     } else {
       dataAccess = 'data-access="public"';
     }
+
+    // Применяем настройки интерпретации
+    let title = item.title || "";
+    let summary = item.summary || "";
+    let additionalNotes = "";
+
+    // Режим "Допущения" - добавляем пометки
+    if (settings.interpretationMode === 'assumptions' && Math.random() > 0.7) {
+      additionalNotes += '<div class="small" style="color: rgba(255,255,255,0.5); margin-top: 4px; font-style: italic;">[неподтверждённые данные]</div>';
+    }
+
+    // Режим "Несогласованный" - добавляем противоречия
+    if (settings.interpretationMode === 'inconsistent' && Math.random() > 0.8) {
+      title = `<span style="text-decoration: line-through; opacity: 0.5;">${title}</span> <span style="color: rgba(239, 68, 68, 0.8);">[противоречие]</span>`;
+    }
+
+    // Показывать неподтверждённые элементы
+    if (settings.showUnconfirmed && item.status === 'UNKNOWN') {
+      additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.8); margin-top: 4px;">⚠ Неподтверждённый элемент</div>';
+    }
+
+    // Скрывать повторяющиеся формулировки
+    if (settings.hideRepetitions && summary && summary.length < 20) {
+      summary = ""; // Скрываем слишком короткие описания
+    }
+
+    // Сглаживать расхождения - убираем пометки о несоответствиях
+    if (settings.smoothDiscrepancies && item.status === 'UNKNOWN') {
+      // Не показываем статус UNKNOWN как проблему
+    }
     
     return `
       <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="card" ${dataAccess}>
@@ -182,10 +213,11 @@
           ${statusBadge(item.status)}
           ${accessBadge}
         </div>
-        <div class="title">${item.title}</div>
-        <div class="small">${item.summary || ""}</div>
+        <div class="title">${title}</div>
+        <div class="small">${summary}</div>
         ${tags ? `<div class="tags">${tags}</div>` : ""}
         ${item.location ? `<div class="small" style="margin-top: 8px; color: rgba(255,255,255,0.6);">📍 ${item.location}</div>` : ""}
+        ${additionalNotes}
       </a>
     `;
   }
@@ -213,8 +245,11 @@
     const threats = data.filter(item => item.isThreat === true);
     const regularData = data.filter(item => !item.isThreat);
 
+    // Получаем настройки
+    const settings = window.getContourSettings ? window.getContourSettings() : {};
+    
     // Фильтруем обычные данные строго по уровню доступа
-    const filtered = regularData.filter(item => {
+    let filtered = regularData.filter(item => {
       // Сначала проверяем доступ через функцию accessOk
       if (!accessOk(item, acc)) {
         return false;
@@ -223,6 +258,32 @@
       // Затем проверяем поиск и тип
       return matches(item, q) && typeOk(item, t);
     });
+
+    // Применяем режим интерпретации
+    if (settings.interpretationMode === 'conservative') {
+      // Консервативный: меньше записей, меньше деталей
+      // Скрываем записи с неполными данными или низким приоритетом
+      filtered = filtered.filter(item => {
+        return item.title && item.summary && item.status !== 'UNKNOWN';
+      });
+    } else if (settings.interpretationMode === 'assumptions') {
+      // Допущения: могут появляться дополнительные пометки
+      // Не фильтруем, но добавим пометки при рендеринге
+    } else if (settings.interpretationMode === 'inconsistent') {
+      // Несогласованный: могут появляться противоречия
+      // Не фильтруем, но добавим противоречия при рендеринге
+    }
+
+    // Применяем поведение при несоответствиях
+    if (settings.mismatchBehavior === 'remove') {
+      // Удаляем записи с несоответствиями
+      filtered = filtered.filter(item => {
+        // Проверяем на несоответствия (например, статус ACTIVE но нет описания)
+        if (item.status === 'ACTIVE' && !item.summary) return false;
+        if (item.status === 'UNKNOWN' && !item.title) return false;
+        return true;
+      });
+    }
 
     renderStats(filtered);
 
@@ -522,6 +583,11 @@
     }
     if (typeEl) {
       typeEl.addEventListener("change", renderList);
+      
+      // Обработчик изменения настроек
+      window.addEventListener('contourSettingsChanged', () => {
+        renderList();
+      });
     }
     if (accessEl) {
       accessEl.addEventListener("change", () => {

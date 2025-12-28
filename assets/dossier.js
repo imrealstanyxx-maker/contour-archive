@@ -231,9 +231,16 @@
         }
       }
 
+      // Применяем уровень детализации
+      const settings = window.getContourSettings ? window.getContourSettings() : {};
+      const detailLevel = settings.detailLevel !== undefined ? settings.detailLevel : 1;
+
       // Примечания составителя
       if (els.editorNote) {
-        if (entry.dossier && entry.dossier.observe) {
+        if (detailLevel === 0) {
+          // Сводка - скрываем примечания
+          els.editorNote.textContent = "—";
+        } else if (entry.dossier && entry.dossier.observe) {
           els.editorNote.innerHTML = `<strong>Рекомендации по наблюдению:</strong><br>${entry.dossier.observe}`;
         } else {
           els.editorNote.textContent = "—";
@@ -241,21 +248,66 @@
       }
 
       // Внутренняя пометка (нестабильная)
-      if (els.internalNoteSection && entry.internalNote) {
-        // 30% вероятность показа
-        if (Math.random() < 0.3) {
-          els.internalNoteSection.style.display = "block";
-          if (els.internalNote) {
-            els.internalNote.textContent = entry.internalNote;
+      if (els.internalNoteSection) {
+        if (detailLevel === 0) {
+          // Сводка - скрываем внутренние пометки
+          els.internalNoteSection.style.display = "none";
+        } else if (entry.internalNote) {
+          if (detailLevel === 2) {
+            // Полный контекст - показываем всегда
+            els.internalNoteSection.style.display = "block";
+            if (els.internalNote) {
+              els.internalNote.textContent = entry.internalNote;
+            }
+          } else {
+            // Материалы - 30% вероятность показа
+            if (Math.random() < 0.3) {
+              els.internalNoteSection.style.display = "block";
+              if (els.internalNote) {
+                els.internalNote.textContent = entry.internalNote;
+              }
+            } else {
+              els.internalNoteSection.style.display = "block";
+              if (els.internalNote) {
+                els.internalNote.textContent = "Дополнительные комментарии отсутствуют или были удалены в ходе сверки.";
+              }
+            }
           }
         } else {
-          els.internalNoteSection.style.display = "block";
-          if (els.internalNote) {
-            els.internalNote.textContent = "Дополнительные комментарии отсутствуют или были удалены в ходе сверки.";
+          els.internalNoteSection.style.display = "none";
+        }
+      }
+
+      // Полный контекст - добавляем зачёркнутые строки и пометки о повреждении
+      if (detailLevel === 2 && els.blocks) {
+        const blocks = els.blocks.querySelectorAll('.block');
+        blocks.forEach((block, index) => {
+          // Случайно добавляем зачёркнутые строки
+          if (Math.random() > 0.7) {
+            const body = block.querySelector('.block-body');
+            if (body) {
+              const text = body.innerHTML;
+              // Добавляем зачёркнутую строку в случайное место
+              const lines = text.split('<br>');
+              if (lines.length > 1) {
+                const randomLine = Math.floor(Math.random() * lines.length);
+                lines[randomLine] = `<span style="text-decoration: line-through; opacity: 0.5;">${lines[randomLine]}</span>`;
+                body.innerHTML = lines.join('<br>');
+              }
+            }
+          }
+        });
+
+        // Иногда добавляем пометку "данные повреждены"
+        if (Math.random() > 0.8) {
+          const firstBlock = els.blocks.querySelector('.block');
+          if (firstBlock) {
+            const meta = firstBlock.querySelector('.block-meta');
+            if (meta) {
+              meta.innerHTML += ' <span style="color: rgba(239, 68, 68, 0.8);">[данные повреждены]</span>';
+            }
           }
         }
-      } else if (els.internalNoteSection) {
-        els.internalNoteSection.style.display = "none";
       }
 
       // Обновляем UI внутреннего доступа

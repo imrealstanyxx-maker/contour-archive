@@ -41,6 +41,8 @@
         <span class="btn-threats-text">Угрозы</span>
       </button>
 
+      <button id="settings-btn" class="btn-settings" title="Параметры отображения">⚙</button>
+
       <a class="btn-link" href="about.html">О архиве</a>
       <a class="btn-link" href="partial.html">Неполная компиляция</a>
     </div>
@@ -106,7 +108,111 @@
     </footer>
   </main>
 
+  <!-- Модальное окно настроек -->
+  <div id="settings-modal" class="settings-modal" style="display: none;">
+    <div class="settings-modal-content">
+      <div class="settings-header">
+        <h2 class="settings-title">Параметры отображения и интерпретации</h2>
+        <p class="settings-subtitle">Изменения могут повлиять на полноту и стабильность выдачи.</p>
+        <button id="settings-close" class="settings-close">×</button>
+      </div>
+
+      <div class="settings-body">
+        <!-- 1. Режим интерпретации данных -->
+        <div class="settings-group">
+          <label class="settings-label">Режим интерпретации данных</label>
+          <select id="interpretation-mode" class="settings-select">
+            <option value="standard">Стандартный</option>
+            <option value="conservative">Консервативный</option>
+            <option value="assumptions">Допущения</option>
+            <option value="inconsistent">Несогласованный <span class="settings-warning">(нестабильный)</span></option>
+          </select>
+        </div>
+
+        <!-- 2. Уровень детализации -->
+        <div class="settings-group">
+          <label class="settings-label">Уровень детализации</label>
+          <div class="settings-slider-container">
+            <input type="range" id="detail-level" class="settings-slider" min="0" max="2" value="1" step="1" />
+            <div class="settings-slider-labels">
+              <span>Сводка</span>
+              <span>Материалы</span>
+              <span>Полный контекст <span class="settings-warning">(не рекомендуется)</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Коррекция интерфейса -->
+        <div class="settings-group">
+          <label class="settings-label">Коррекция интерфейса</label>
+          <div class="settings-checkboxes">
+            <label class="settings-checkbox">
+              <input type="checkbox" id="smooth-discrepancies" />
+              <span>Сглаживать расхождения</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" id="show-unconfirmed" />
+              <span>Показывать неподтверждённые элементы</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" id="hide-repetitions" />
+              <span>Скрывать повторяющиеся формулировки</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Поведение при несоответствиях -->
+        <div class="settings-group">
+          <label class="settings-label">Поведение при несоответствиях</label>
+          <div class="settings-radio">
+            <label class="settings-radio-item">
+              <input type="radio" name="mismatch-behavior" value="ignore" checked />
+              <span>Игнорировать</span>
+            </label>
+            <label class="settings-radio-item">
+              <input type="radio" name="mismatch-behavior" value="mark" />
+              <span>Помечать</span>
+            </label>
+            <label class="settings-radio-item">
+              <input type="radio" name="mismatch-behavior" value="remove" />
+              <span>Удалять из выдачи</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 5. Экспериментальные параметры -->
+        <div class="settings-group settings-experimental">
+          <label class="settings-label">Экспериментальные параметры</label>
+          <p class="settings-subtitle">Использование может привести к нестабильной выдаче.</p>
+          <div class="settings-checkboxes">
+            <label class="settings-checkbox">
+              <input type="checkbox" id="allow-delayed" />
+              <span>Разрешить отложенные данные</span>
+            </label>
+            <label class="settings-checkbox">
+              <input type="checkbox" id="show-outside-compilation" />
+              <span>Показывать материалы вне компиляции</span>
+            </label>
+            <label class="settings-checkbox settings-disabled">
+              <input type="checkbox" id="external-evidence" disabled />
+              <span>Учитывать внешние свидетельства</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 6. Кнопка сброса -->
+        <div class="settings-group">
+          <button id="settings-reset" class="settings-reset-btn">Сбросить параметры интерпретации</button>
+          <div id="settings-reset-message" class="settings-reset-message" style="display: none;">
+            Некоторые изменения не могут быть отменены.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="assets/data.js"></script>
+  <script src="assets/settings.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
