@@ -143,6 +143,17 @@
     `;
   }
 
+  // Рендер карточки угрозы
+  function renderThreatCard(item) {
+    return `
+      <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="threat-card">
+        <div class="threat-warning">Угроза жизни подтверждена</div>
+        <div class="threat-id">${item.id}</div>
+        <div class="threat-title">${item.title}</div>
+      </a>
+    `;
+  }
+
   // Рендер одной карточки
   function renderCard(item) {
     const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
