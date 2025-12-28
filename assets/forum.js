@@ -27,62 +27,14 @@ window.contourForum = (() => {
   // Инициализация при первой загрузке
   initDefaultTopics();
   // Проверка доступа к форуму
-  async function checkForumAccess() {
-    // Проверяем через Supabase
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-      try {
-        if (window.contourSupabase) {
-          const isAuth = await window.contourSupabase.isAuthenticated();
-          if (!isAuth) {
-            alert("Для доступа к форуму необходимо войти в систему.");
-            window.location.href = "login.html?return=forum.html";
-            return false;
-          }
-          
-          const userData = await window.contourSupabase.getUserData();
-          if (!userData) {
-            alert("Ошибка получения данных пользователя. Попробуйте войти снова.");
-            window.location.href = "login.html?return=forum.html";
-            return false;
-          }
-          
-          // Проверяем верификацию email (мягкая проверка - предупреждаем, но не блокируем)
-          const user = await window.contourSupabase.getCurrentUser();
-          if (user && !user.email_confirmed_at) {
-            // Не блокируем, но предупреждаем
-            console.warn('Email not verified, but allowing access');
-          }
-          
-          return true;
-        }
-      } catch (e) {
-        console.error('Error checking forum access:', e);
-        // Не блокируем доступ при ошибке, просто логируем
-      }
-    }
-    
-    // Fallback на старую систему
-    if (window.contourAuth && window.contourAuth.isAuthenticated) {
-      const isAuth = window.contourAuth.isAuthenticated();
-      if (!isAuth) {
-        alert("Для доступа к форуму необходимо войти в систему.");
-        window.location.href = "login.html?return=forum.html";
-        return false;
-      }
-
-      const userData = window.contourAuth.getUserData();
-      if (!userData || !userData.verified) {
-        alert("Для доступа к форуму необходимо верифицировать аккаунт через email. Перейдите в профиль для верификации.");
-        window.location.href = "profile.html";
-        return false;
-      }
-      
+  function checkForumAccess() {
+    if (window.contourAuth && window.contourAuth.isAuthenticated()) {
       return true;
     }
     
-    // Если ни одна система не доступна, разрешаем доступ (для отладки)
-    console.warn('Auth systems not available, allowing forum access');
-    return true;
+    alert("Для доступа к форуму необходимо войти в систему.");
+    window.location.href = "login.html?return=forum.html";
+    return false;
   }
 
   // Получение всех тем
@@ -118,18 +70,11 @@ window.contourForum = (() => {
   }
 
   // Создание новой темы
-  async function createTopic(title, content) {
-    const hasAccess = await checkForumAccess();
-    if (!hasAccess) return null;
+  function createTopic(title, content) {
+    if (!checkForumAccess()) return null;
 
-    let userData = null;
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-      if (window.contourSupabase) {
-        userData = await window.contourSupabase.getUserData();
-      }
-    } else if (window.contourAuth && window.contourAuth.getUserData) {
-      userData = window.contourAuth.getUserData();
-    }
+    const userData = window.contourAuth ? window.contourAuth.getUserData() : null;
+    if (!userData) return null;
     const topics = getTopics();
     
     const newTopic = {
@@ -152,18 +97,11 @@ window.contourForum = (() => {
   }
 
   // Добавление ответа
-  async function addReply(topicId, content) {
-    const hasAccess = await checkForumAccess();
-    if (!hasAccess) return null;
+  function addReply(topicId, content) {
+    if (!checkForumAccess()) return null;
 
-    let userData = null;
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-      if (window.contourSupabase) {
-        userData = await window.contourSupabase.getUserData();
-      }
-    } else if (window.contourAuth && window.contourAuth.getUserData) {
-      userData = window.contourAuth.getUserData();
-    }
+    const userData = window.contourAuth ? window.contourAuth.getUserData() : null;
+    if (!userData) return null;
     const replies = getReplies(topicId);
     
     const newReply = {
@@ -207,18 +145,10 @@ window.contourForum = (() => {
   }
 
   // Удаление темы (только для админа или автора)
-  async function deleteTopic(topicId) {
-    const hasAccess = await checkForumAccess();
-    if (!hasAccess) return false;
+  function deleteTopic(topicId) {
+    if (!checkForumAccess()) return false;
 
-    let userData = null;
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-      if (window.contourSupabase) {
-        userData = await window.contourSupabase.getUserData();
-      }
-    } else if (window.contourAuth && window.contourAuth.getUserData) {
-      userData = window.contourAuth.getUserData();
-    }
+    const userData = window.contourAuth ? window.contourAuth.getUserData() : null;
 
     if (!userData) return false;
 
