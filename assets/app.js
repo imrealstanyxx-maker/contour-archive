@@ -51,23 +51,21 @@
 
     if (statsEl) {
       statsEl.innerHTML = `
-        <div class="stat-row">
-          <div class="stat-item">
-            <div class="stat-value">${total}</div>
-            <div class="stat-label">Всего единиц</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">${active}</div>
-            <div class="stat-label">Активных</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">${unknown}</div>
-            <div class="stat-label">Неизвестных</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">${spb}</div>
-            <div class="stat-label">Связано с СПб</div>
-          </div>
+        <div class="stat">
+          <div class="k">Всего единиц</div>
+          <div class="v">${total}</div>
+        </div>
+        <div class="stat">
+          <div class="k">Активных</div>
+          <div class="v">${active}</div>
+        </div>
+        <div class="stat">
+          <div class="k">Неизвестных</div>
+          <div class="v">${unknown}</div>
+        </div>
+        <div class="stat">
+          <div class="k">Связано с СПб</div>
+          <div class="v">${spb}</div>
         </div>
       `;
     }
@@ -97,15 +95,15 @@
       const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
       return `
         <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="card">
-          <div class="card-head">
-            <div class="card-id">${item.id}</div>
-            <div class="card-type">${item.type}</div>
+          <div class="row">
+            <div>${item.id}</div>
+            <div>${item.type}</div>
             ${statusBadge(item.status)}
           </div>
-          <div class="card-title">${item.title}</div>
-          <div class="card-summary">${item.summary || ""}</div>
-          ${tags ? `<div class="card-tags">${tags}</div>` : ""}
-          ${item.location ? `<div class="card-meta">📍 ${item.location}</div>` : ""}
+          <div class="title">${item.title}</div>
+          <div class="small">${item.summary || ""}</div>
+          ${tags ? `<div class="tags">${tags}</div>` : ""}
+          ${item.location ? `<div class="small" style="margin-top: 8px; color: rgba(255,255,255,0.6);">📍 ${item.location}</div>` : ""}
         </a>
       `;
     }).join("");
