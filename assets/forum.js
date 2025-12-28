@@ -192,7 +192,7 @@ if (window.location.pathname.includes("forum.html")) {
     const topicsListEl = document.getElementById("topics-list");
     const newTopicBtn = document.getElementById("new-topic-btn");
 
-    async function renderTopics() {
+    function renderTopics() {
       const topics = window.contourForum.getTopics();
       
       if (topics.length === 0) {
@@ -397,7 +397,7 @@ if (window.location.pathname.includes("topic.html")) {
     `;
 
     // Отображаем ответы
-    async function renderReplies() {
+    function renderReplies() {
       const replies = window.contourForum.getReplies(topicId);
       
       if (replies.length === 0) {
