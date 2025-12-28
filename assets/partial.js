@@ -57,7 +57,6 @@
     { text: "Источник недоступен для проверки", weight: 1 },
     // Более интересные фрагменты (реже появляются)
     { text: "Упоминание о КЕ-С/001 в удалённых протоколах", weight: 0.3, hint: true },
-    { text: "Связь с архивной картотекой не подтверждена", weight: 0.4, hint: true },
     { text: "Материал о сдвиге формулировок изъят", weight: 0.3, hint: true },
     { text: "Запись о кабинете без назначения удалена", weight: 0.4, hint: true },
     { text: "Данные о человеке из списка нестабильны", weight: 0.3, hint: true },
@@ -113,11 +112,14 @@
       availableFragments = [...availableFragments, ...basicFragments.slice(0, 8)];
     }
     
-    // Фильтруем фрагменты, связанные с KES-001 и KEM-002
+<<<<<<< Current (Your changes)
+    // Фильтруем фрагменты, связанные с KES-001
+=======
+    // Фильтруем фрагменты, связанные с существующими объектами
+>>>>>>> Incoming (Background Agent changes)
     const allowedFragments = availableFragments.filter(f => {
-      return f.includes('КЕ-С/001') || f.includes('КЕ-М/004') || 
-             f.includes('архивн') || f.includes('Лицо №0') ||
-             f.includes('Картотека-7') || f.includes('КЕ-С/001') || f.includes('КЕ-М/004');
+      return f.includes('КЕ-С/001') || f.includes('Лицо №0') ||
+             f.includes('Картотека-7');
     });
     
     // Перемешиваем порядок
