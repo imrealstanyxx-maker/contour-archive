@@ -1,13 +1,11 @@
-// Страница наблюдений сообщества (через GitHub Issues)
+// Страница наблюдений сообщества (через GitHub Issues, без Supabase)
 
 (() => {
   'use strict';
   
-  let supabase = null;
-  let currentUser = null;
-  let userProfile = null;
   let currentFilter = 'all';
   let allReports = [];
+  let currentUsername = null;
 
   function showError(message, containerId = 'reports-list') {
     try {
@@ -28,19 +26,18 @@
     try {
       // Ждём загрузки config.js
       let configAttempts = 0;
-      while ((!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.SUPABASE_URL) && configAttempts < 50) {
+      while (!window.CONTOUR_CONFIG && configAttempts < 50) {
         await new Promise(resolve => setTimeout(resolve, 100));
         configAttempts++;
       }
 
-      // Проверка конфигурации Supabase (для авторизации)
-      if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
-        showError('Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.');
+      // Проверка конфигурации GitHub (обязательно)
+      if (!window.CONTOUR_CONFIG) {
+        showError('Конфигурация не загружена. Проверьте подключение assets/config.js');
         return;
       }
 
-      // Проверка конфигурации GitHub
-      if (!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.GITHUB_REPO || window.CONTOUR_CONFIG.GITHUB_REPO === 'owner/repo') {
+      if (!window.CONTOUR_CONFIG.GITHUB_REPO || window.CONTOUR_CONFIG.GITHUB_REPO === 'owner/repo') {
         showError('GitHub репозиторий не настроен. Пожалуйста, настройте GITHUB_REPO в assets/config.js');
         return;
       }
@@ -59,48 +56,18 @@
 
       if (!window.contourGitHub) {
         console.error('window.contourGitHub не загружен после ожидания');
-        showError('GitHub Issues API не загружен. Проверьте подключение assets/github-issues.js и откройте консоль браузера (F12) для деталей.');
+        showError('GitHub Issues API не загружен. Проверьте подключение assets/github-issues.js');
         return;
       }
 
-      // Инициализация Supabase (только для авторизации)
-      if (typeof window.supabase === 'undefined') {
-        showError('Не удалось загрузить Supabase SDK. Проверьте подключение к интернету.');
-        return;
-      }
+      // Получаем имя пользователя из localStorage (простая авторизация)
+      currentUsername = localStorage.getItem('contour_username') || 'anonymous';
 
-      supabase = window.supabase.createClient(
-        window.CONTOUR_CONFIG.SUPABASE_URL,
-        window.CONTOUR_CONFIG.SUPABASE_ANON_KEY
-      );
-
-      // Проверка авторизации
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        window.location.href = 'login.html?return=community.html';
-        return;
-      }
-
-      currentUser = user;
-      userProfile = await getUserProfile(user.id);
-
-      // Проверка лицензии
-      if (!userProfile || (userProfile.role !== 'observer' && userProfile.role !== 'admin')) {
-        const noLicenseSection = document.getElementById('no-license-section');
-        const createSection = document.getElementById('create-section');
-        if (noLicenseSection) noLicenseSection.style.display = 'block';
-        if (createSection) createSection.style.display = 'none';
-      } else {
-        const noLicenseSection = document.getElementById('no-license-section');
-        const createSection = document.getElementById('create-section');
-        if (noLicenseSection) noLicenseSection.style.display = 'none';
-        if (createSection) createSection.style.display = 'block';
-        
-        if (userProfile.role === 'admin') {
-          const moderationBtn = document.getElementById('moderation-btn');
-          if (moderationBtn) moderationBtn.style.display = 'inline-block';
-        }
-      }
+      // Показываем форму создания для всех
+      const createSection = document.getElementById('create-section');
+      const noLicenseSection = document.getElementById('no-license-section');
+      if (createSection) createSection.style.display = 'block';
+      if (noLicenseSection) noLicenseSection.style.display = 'none';
 
       // Загрузка списка досье для select
       await loadDossiers();
@@ -129,29 +96,9 @@
     }
   }
 
-  async function getUserProfile(userId) {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error('Error getting profile:', error);
-        return null;
-      }
-      return data;
-    } catch (error) {
-      console.error('Error in getUserProfile:', error);
-      return null;
-    }
-  }
-
   async function loadDossiers() {
     try {
       if (!window.CONTOUR_DATA) {
-        // Ждём загрузки данных
         let attempts = 0;
         while (!window.CONTOUR_DATA && attempts < 50) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -177,16 +124,8 @@
 
   async function loadReports() {
     try {
-      // Ждём загрузки github-issues.js
-      let attempts = 0;
-      while (!window.contourGitHub && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-
       if (!window.contourGitHub) {
-        showError('GitHub Issues API не загружен. Проверьте подключение assets/github-issues.js');
-        console.error('window.contourGitHub is not available');
+        showError('GitHub Issues API не загружен');
         return;
       }
 
@@ -194,7 +133,7 @@
       const issues = await window.contourGitHub.getIssues({ state: 'all' });
       
       allReports = issues || [];
-      console.log('Loaded reports from GitHub:', allReports.length, allReports);
+      console.log('Loaded reports from GitHub:', allReports.length);
       renderReports();
     } catch (error) {
       console.error('Error loading reports:', error);
@@ -214,8 +153,7 @@
       switch (currentFilter) {
         case 'my':
           // Мои отчеты - по username
-          const username = userProfile?.username || currentUser?.email?.split('@')[0] || '';
-          filtered = allReports.filter(r => r.username === username || r.username === currentUser?.email?.split('@')[0]);
+          filtered = allReports.filter(r => r.username === currentUsername);
           break;
         case 'unofficial':
           filtered = allReports.filter(r => r.status === 'unofficial_approved');
@@ -224,26 +162,28 @@
           filtered = allReports.filter(r => r.status === 'final_approved');
           break;
         case 'pending':
-          const myUsername = userProfile?.username || currentUser?.email?.split('@')[0] || '';
-          filtered = allReports.filter(r => 
-            r.status === 'pending' && 
-            (r.username === myUsername || userProfile?.role === 'admin')
-          );
+          filtered = allReports.filter(r => r.status === 'pending' && r.username === currentUsername);
           break;
         case 'moderation':
-          if (userProfile?.role === 'admin') {
-            filtered = allReports.filter(r => r.status === 'pending' || r.status === 'unofficial_approved');
-          }
-          break;
+          // Для модерации нужен доступ к GitHub - показываем ссылку
+          filtered = [];
+          container.innerHTML = `
+            <div class="note">
+              Для модерации наблюдений откройте 
+              <a href="https://github.com/${window.CONTOUR_CONFIG.GITHUB_REPO}/issues" target="_blank" style="color: #5ac8fa;">
+                Issues в GitHub
+              </a>
+              и измените labels на issues.
+            </div>
+          `;
+          return;
         default:
-          // Все доступные пользователю
-          const myUser = userProfile?.username || currentUser?.email?.split('@')[0] || '';
-          filtered = allReports.filter(r => {
-            if (r.status === 'final_approved' || r.status === 'unofficial_approved') return true;
-            if (r.username === myUser) return true; // Автор видит все свои заявки
-            if (userProfile?.role === 'admin') return true;
-            return false;
-          });
+          // Все доступные наблюдения
+          filtered = allReports.filter(r => 
+            r.status === 'final_approved' || 
+            r.status === 'unofficial_approved' ||
+            r.username === currentUsername
+          );
       }
 
       if (filtered.length === 0) {
@@ -259,9 +199,6 @@
       };
 
       container.innerHTML = filtered.map(report => {
-        const isMyReport = report.username === (userProfile?.username || currentUser?.email?.split('@')[0]);
-        const isAdmin = userProfile?.role === 'admin';
-        
         let statusBadge = '';
         switch (report.status) {
           case 'pending':
@@ -276,20 +213,6 @@
           case 'rejected':
             statusBadge = '<span style="color: #ef4444;">Отклонено</span>';
             break;
-        }
-
-        let adminActions = '';
-        if (isAdmin && report.issue_url) {
-          adminActions = `
-            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-              <a href="${report.issue_url}" target="_blank" class="btn-link" style="background: rgba(96, 165, 250, 0.15); border-color: rgba(96, 165, 250, 0.3); color: #60a5fa; font-size: 13px; text-decoration: none;">
-                Открыть в GitHub
-              </a>
-              <div class="note" style="margin-top: 8px; font-size: 12px; background: rgba(255, 255, 255, 0.05);">
-                Для модерации откройте issue в GitHub и установите label: <code>unofficial</code>, <code>approved</code> или <code>rejected</code>
-              </div>
-            </div>
-          `;
         }
 
         return `
@@ -329,7 +252,13 @@
               </div>
             ` : ''}
             
-            ${adminActions}
+            ${report.issue_url ? `
+              <div style="margin-top: 8px;">
+                <a href="${report.issue_url}" target="_blank" class="btn-link" style="font-size: 13px; padding: 6px 12px;">
+                  Открыть в GitHub
+                </a>
+              </div>
+            ` : ''}
           </div>
         `;
       }).join('');
@@ -346,12 +275,8 @@
       const formError = document.getElementById('form-error');
       const formSuccess = document.getElementById('form-success');
       
-      if (formError) {
-        formError.style.display = 'none';
-      }
-      if (formSuccess) {
-        formSuccess.style.display = 'none';
-      }
+      if (formError) formError.style.display = 'none';
+      if (formSuccess) formSuccess.style.display = 'none';
       
       const formData = new FormData(e.target);
       const reportData = {
@@ -361,7 +286,7 @@
         evidence: formData.get('evidence')?.trim() || null,
         location: formData.get('location')?.trim() || null,
         observed_at: formData.get('observed_at') ? new Date(formData.get('observed_at')).toISOString() : null,
-        username: userProfile?.username || currentUser?.email?.split('@')[0] || 'unknown'
+        username: currentUsername
       };
 
       if (!reportData.title || !reportData.body) {
