@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Служебный ввод — КОНТУР</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <style>
+    body {
+      background: #000000;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .terminal-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .terminal-header {
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+      padding-bottom: 12px;
+    }
+
+    .terminal-title {
+      font-size: 18px;
+      color: #00ff00;
+      margin: 0 0 4px 0;
+      font-weight: normal;
+    }
+
+    .terminal-subtitle {
+      font-size: 11px;
+      color: rgba(0, 255, 0, 0.6);
+      margin: 0;
+    }
+
+    .terminal-output {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(0, 255, 0, 0.2);
+      padding: 16px;
+      min-height: 400px;
+      max-height: 60vh;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .terminal-line {
+      margin-bottom: 4px;
+      word-wrap: break-word;
+    }
+
+    .terminal-prompt {
+      color: #00ff00;
+    }
+
+    .terminal-input-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-prompt-text {
+      color: #00ff00;
+      font-size: 13px;
+    }
+
+    .terminal-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      padding: 4px 0;
+      outline: none;
+    }
+
+    .terminal-input:focus {
+      border-bottom-color: #00ff00;
+    }
+
+    .terminal-error {
+      color: #ff4444;
+    }
+
+    .terminal-success {
+      color: #44ff44;
+    }
+
+    .terminal-warning {
+      color: #ffaa00;
+    }
+
+    .terminal-info {
+      color: rgba(0, 255, 0, 0.8);
+    }
+
+    .terminal-link {
+      color: #00aaff;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .terminal-link:hover {
+      color: #00ccff;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      color: rgba(0, 255, 0, 0.6);
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      color: rgba(0, 255, 0, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="terminal-container">
+    <div class="terminal-header">
+      <h1 class="terminal-title">Служебный ввод</h1>
+      <p class="terminal-subtitle">Некоторые инструкции могут быть недоступны.</p>
+    </div>
+
+    <div id="terminal-output" class="terminal-output"></div>
+
+    <div class="terminal-input-line">
+      <span class="terminal-prompt-text">></span>
+      <input type="text" id="terminal-input" class="terminal-input" autocomplete="off" autofocus />
+    </div>
+
+    <a href="partial.html" class="back-link">← Вернуться</a>
+  </div>
+
+  <script src="assets/terminal.js"></script>
+</body>
+</html>
+
