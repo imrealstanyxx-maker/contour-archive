@@ -115,21 +115,21 @@
               
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Известно</div>
+                  <div class="block-title">Как возникает</div>
                 </div>
                 <div class="block-body">${(threat.known || "—").replace(/\n/g, "<br>")}</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Что приводит к гибели</div>
+                  <div class="block-title">Почему приводит к гибели</div>
                 </div>
                 <div class="block-body">${(threat.causes || "—").replace(/\n/g, "<br>")}</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Что НЕ помогает</div>
+                  <div class="block-title">Почему избежать почти невозможно</div>
                 </div>
                 <div class="block-body">${(threat.notHelps || "—").replace(/\n/g, "<br>")}</div>
               </div>

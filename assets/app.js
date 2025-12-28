@@ -147,11 +147,15 @@
 
   // Рендер карточки угрозы
   function renderThreatCard(item) {
+    const threat = item.threat || {};
+    const shortDesc = threat.known ? threat.known.split('.').slice(0, 2).join('.') + '.' : '';
+    
     return `
       <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="threat-card">
-        <div class="threat-warning">Угроза жизни подтверждена</div>
+        <div class="threat-warning">Подтверждён риск для жизни</div>
         <div class="threat-id">${item.id}</div>
         <div class="threat-title">${item.title}</div>
+        ${shortDesc ? `<div class="threat-desc">${shortDesc}</div>` : ''}
       </a>
     `;
   }
