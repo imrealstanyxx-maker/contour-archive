@@ -56,7 +56,7 @@
     if (item.type) {
       if (item.type === "КЕ-С") return "kes";
       if (item.type === "КЕ-М") return "kem";
-      if (item.type === "КЕ-Ф") return "kef";
+      if (item.type === "КЕ-Ф" || item.type === "КЕ-?") return "kef";
     }
     
     // Если type нет, определяем по префиксу id
