@@ -239,6 +239,74 @@
           allMaterials = [...allMaterials, ...entry.internalMaterials];
         }
 
+        // Специальная обработка для KEF-002 - интерактивное заполнение
+        if (entry.id === 'KEF-002') {
+          const templateText = entry.templateText || '';
+          let materialHTML = allMaterials.map((m, index) => {
+            const isInternal = m.stamp && m.stamp.includes("INTERNAL");
+            let materialText = redactify(String(m.text || "")).replace(/\n/g, "<br>");
+            let materialTitle = (m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            let materialStamp = (m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            return `
+              <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
+                <div class="block-head">
+                  <div class="block-title">${materialTitle}</div>
+                  <div class="block-meta">${materialStamp}</div>
+                </div>
+                <div class="block-body">${materialText}</div>
+              </div>
+            `;
+          }).join("");
+
+          // Добавляем блок с кнопкой и полем для заполнения
+          materialHTML += `
+            <div class="block template-block">
+              <div class="block-head">
+                <div class="block-title">Заполнение материала</div>
+              </div>
+              <div class="block-body">
+                <button id="fill-template-btn" class="template-btn">Заполнить материал</button>
+                <div id="template-editor-container" style="display: none; margin-top: 16px;">
+                  <textarea id="template-editor" class="template-editor" readonly></textarea>
+                  <div id="template-error" class="template-error" style="display: none;"></div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Добавляем внутренний блок, если есть доступ
+          if (hasInternalAccess && Array.isArray(entry.internalMaterials) && entry.internalMaterials.length > 0) {
+            const internalMaterial = entry.internalMaterials[0];
+            materialHTML += `
+              <div class="block" data-internal="true">
+                <div class="block-head">
+                  <div class="block-title">${(internalMaterial.kind || "Полный отчёт").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                  <div class="block-meta">${(internalMaterial.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                </div>
+                <div class="block-body">${redactify(String(internalMaterial.text || "")).replace(/\n/g, "<br>")}</div>
+              </div>
+            `;
+          } else if (Array.isArray(entry.internalMaterials) && entry.internalMaterials.length > 0) {
+            materialHTML += `
+              <div class="block" data-internal="true">
+                <div class="block-head">
+                  <div class="block-title">Внутренний отчёт</div>
+                </div>
+                <div class="block-body">
+                  <div class="note" style="color: rgba(255, 255, 255, 0.6);">Внутренний отчёт недоступен.</div>
+                </div>
+              </div>
+            `;
+          }
+
+          els.blocks.innerHTML = materialHTML;
+
+          // Инициализируем интерактивное заполнение
+          initTemplateEditor(templateText);
+          return; // Выходим раньше, чтобы не применять обычную логику
+        }
+
         // Применяем настройки к материалам
         const detailLevel = settings.detailLevel !== undefined ? settings.detailLevel : 1;
         
