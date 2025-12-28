@@ -489,6 +489,21 @@
     }
   }
 
+  // Управление видимостью угроз
+  function toggleThreatsSection() {
+    if (sectionThreats) {
+      const isVisible = sectionThreats.style.display === "block";
+      sectionThreats.style.display = isVisible ? "none" : "block";
+      
+      // Прокручиваем к секции, если открываем
+      if (!isVisible) {
+        setTimeout(() => {
+          sectionThreats.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    }
+  }
+
   // Инициализация
   function init() {
     // Обработчики событий
@@ -504,6 +519,19 @@
         renderList();
         // Обновляем UI внутреннего доступа после смены темы
         updateInternalAccessUI();
+      });
+    }
+
+    // Обработчики событий для кнопок угроз
+    if (toggleThreatsBtn) {
+      toggleThreatsBtn.addEventListener("click", toggleThreatsSection);
+    }
+    
+    if (closeThreatsBtn) {
+      closeThreatsBtn.addEventListener("click", () => {
+        if (sectionThreats) {
+          sectionThreats.style.display = "none";
+        }
       });
     }
 
