@@ -195,6 +195,7 @@
 
       // Материалы - показываем все, включая internal и leak (если есть доступ)
       if (els.blocks) {
+        const settings = window.getContourSettings ? window.getContourSettings() : {};
         let allMaterials = Array.isArray(entry.materials) ? [...entry.materials] : [];
         
         // Проверяем, откуда открыто досье (из какого фильтра доступа)
@@ -213,18 +214,61 @@
           allMaterials = [...allMaterials, ...entry.internalMaterials];
         }
 
+        // Применяем настройки к материалам
+        const detailLevel = settings.detailLevel !== undefined ? settings.detailLevel : 1;
+        
+        // Режим "Консервативный" - показываем только основные материалы
+        if (settings.interpretationMode === 'conservative') {
+          allMaterials = allMaterials.filter(m => m.kind && !m.stamp?.includes("INTERNAL"));
+        }
+
+        // Режим "Допущения" - может показывать дополнительные пометки
+        // Режим "Несогласованный" - может показывать зачёркнутые материалы
+
+        // Уровень детализации влияет на количество материалов
+        if (detailLevel === 0) {
+          // Сводка - показываем только первые 2 материала
+          allMaterials = allMaterials.slice(0, 2);
+        } else if (detailLevel === 2) {
+          // Полный контекст - показываем все, включая возможные повреждённые
+        }
+
         if (allMaterials.length === 0) {
           els.blocks.innerHTML = `<div class="note">Материалы отсутствуют или были удалены.</div>`;
         } else {
-          els.blocks.innerHTML = allMaterials.map(m => {
+          els.blocks.innerHTML = allMaterials.map((m, index) => {
             const isInternal = m.stamp && m.stamp.includes("INTERNAL");
+            let materialText = redactify(String(m.text || "")).replace(/\n/g, "<br>");
+            let materialTitle = (m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            let materialStamp = (m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            // Режим "Несогласованный" - добавляем зачёркнутые строки
+            if (settings.interpretationMode === 'inconsistent' && Math.random() > 0.7) {
+              const lines = materialText.split('<br>');
+              if (lines.length > 1) {
+                const randomLine = Math.floor(Math.random() * lines.length);
+                lines[randomLine] = `<span style="text-decoration: line-through; opacity: 0.5;">${lines[randomLine]}</span>`;
+                materialText = lines.join('<br>');
+              }
+            }
+
+            // Полный контекст - иногда добавляем пометки о повреждении
+            if (detailLevel === 2 && Math.random() > 0.85) {
+              materialStamp += ' <span style="color: rgba(239, 68, 68, 0.8);">[данные повреждены]</span>';
+            }
+
+            // Скрывать повторяющиеся формулировки
+            if (settings.hideRepetitions && materialText.length < 50) {
+              materialText = '<span style="opacity: 0.5; font-style: italic;">[содержимое скрыто]</span>';
+            }
+
             return `
               <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
                 <div class="block-head">
-                  <div class="block-title">${(m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                  <div class="block-meta">${(m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                  <div class="block-title">${materialTitle}</div>
+                  <div class="block-meta">${materialStamp}</div>
                 </div>
-                <div class="block-body">${redactify(String(m.text || "")).replace(/\n/g, "<br>")}</div>
+                <div class="block-body">${materialText}</div>
               </div>
             `;
           }).join("");

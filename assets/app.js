@@ -116,6 +116,7 @@
   function renderStats(items) {
     if (!statsEl) return;
 
+    const settings = window.getContourSettings ? window.getContourSettings() : {};
     const total = items.length;
     const active = items.filter(x => (x.status || "").toUpperCase() === "ACTIVE").length;
     const unknown = items.filter(x => (x.status || "").toUpperCase() === "UNKNOWN").length;
@@ -125,24 +126,70 @@
       (x.tags || []).some(t => norm(t) === "спб")
     ).length;
 
-    statsEl.innerHTML = `
+    // Применяем настройки к статистике
+    let displayTotal = total;
+    let displayActive = active;
+    let displayUnknown = unknown;
+    let displaySpb = spb;
+
+    // Режим "Консервативный" - скрываем часть статистики
+    if (settings.interpretationMode === 'conservative') {
+      // Не меняем числа, но они уже отфильтрованы
+    }
+
+    // Режим "Допущения" - может показывать дополнительные данные
+    if (settings.interpretationMode === 'assumptions' && settings.showUnconfirmed) {
+      // Может показывать больше unknown
+    }
+
+    // Сглаживать расхождения - скрываем unknown из статистики
+    if (settings.smoothDiscrepancies) {
+      displayUnknown = 0; // Не показываем unknown в статистике
+    }
+
+    // Поведение при несоответствиях - влияет на общее количество
+    if (settings.mismatchBehavior === 'remove') {
+      // Числа уже отфильтрованы
+    }
+
+    let statsHTML = `
       <div class="stat">
         <div class="k">Всего единиц</div>
-        <div class="v">${total}</div>
+        <div class="v">${displayTotal}</div>
       </div>
       <div class="stat">
         <div class="k">Активных</div>
-        <div class="v">${active}</div>
-      </div>
-      <div class="stat">
-        <div class="k">Неизвестных</div>
-        <div class="v">${unknown}</div>
-      </div>
-      <div class="stat">
-        <div class="k">Связано с СПб</div>
-        <div class="v">${spb}</div>
+        <div class="v">${displayActive}</div>
       </div>
     `;
+
+    // Показываем unknown только если не сглаживаем расхождения
+    if (!settings.smoothDiscrepancies || displayUnknown > 0) {
+      statsHTML += `
+        <div class="stat">
+          <div class="k">Неизвестных</div>
+          <div class="v">${displayUnknown}</div>
+        </div>
+      `;
+    }
+
+    statsHTML += `
+      <div class="stat">
+        <div class="k">Связано с СПб</div>
+        <div class="v">${displaySpb}</div>
+      </div>
+    `;
+
+    // Режим "Несогласованный" - добавляем предупреждение
+    if (settings.interpretationMode === 'inconsistent') {
+      statsHTML += `
+        <div class="stat" style="color: rgba(239, 68, 68, 0.8); margin-top: 8px; font-size: 12px;">
+          <div class="k">⚠ Нестабильная выдача</div>
+        </div>
+      `;
+    }
+
+    statsEl.innerHTML = statsHTML;
   }
 
   // Рендер карточки угрозы
@@ -179,30 +226,89 @@
     let title = item.title || "";
     let summary = item.summary || "";
     let additionalNotes = "";
+    let statusDisplay = statusBadge(item.status);
 
     // Режим "Допущения" - добавляем пометки
-    if (settings.interpretationMode === 'assumptions' && Math.random() > 0.7) {
-      additionalNotes += '<div class="small" style="color: rgba(255,255,255,0.5); margin-top: 4px; font-style: italic;">[неподтверждённые данные]</div>';
+    if (settings.interpretationMode === 'assumptions') {
+      // 40% вероятность пометки для записей с неполными данными
+      if ((!item.summary || item.summary.length < 30) && Math.random() > 0.6) {
+        additionalNotes += '<div class="small" style="color: rgba(255,255,255,0.5); margin-top: 4px; font-style: italic;">[неподтверждённые данные]</div>';
+      }
+      // Для UNKNOWN всегда добавляем пометку
+      if (item.status === 'UNKNOWN' && Math.random() > 0.3) {
+        additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.8); margin-top: 4px;">[требует проверки]</div>';
+      }
     }
 
     // Режим "Несогласованный" - добавляем противоречия
-    if (settings.interpretationMode === 'inconsistent' && Math.random() > 0.8) {
-      title = `<span style="text-decoration: line-through; opacity: 0.5;">${title}</span> <span style="color: rgba(239, 68, 68, 0.8);">[противоречие]</span>`;
+    if (settings.interpretationMode === 'inconsistent') {
+      // 30% вероятность противоречия
+      if (Math.random() > 0.7) {
+        title = `<span style="text-decoration: line-through; opacity: 0.5;">${title}</span> <span style="color: rgba(239, 68, 68, 0.8);">[противоречие]</span>`;
+      }
+      // Иногда показываем зачёркнутый summary
+      if (summary && Math.random() > 0.8) {
+        summary = `<span style="text-decoration: line-through; opacity: 0.4;">${summary}</span>`;
+      }
     }
 
     // Показывать неподтверждённые элементы
-    if (settings.showUnconfirmed && item.status === 'UNKNOWN') {
-      additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.8); margin-top: 4px;">⚠ Неподтверждённый элемент</div>';
+    if (settings.showUnconfirmed) {
+      if (item.status === 'UNKNOWN') {
+        additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.8); margin-top: 4px;">⚠ Неподтверждённый элемент</div>';
+      }
+      // Также помечаем записи без полных данных
+      if ((!item.summary || item.summary.length < 20) && item.status !== 'UNKNOWN') {
+        additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.6); margin-top: 4px;">[неполные данные]</div>';
+      }
     }
 
     // Скрывать повторяющиеся формулировки
-    if (settings.hideRepetitions && summary && summary.length < 20) {
-      summary = ""; // Скрываем слишком короткие описания
+    if (settings.hideRepetitions) {
+      // Скрываем слишком короткие описания
+      if (summary && summary.length < 25) {
+        summary = "";
+      }
+      // Скрываем повторяющиеся теги (если есть)
+      if (tags && tags.split('</span>').length > 3) {
+        // Оставляем только первые 3 тега
+        const tagArray = (item.tags || []).slice(0, 3);
+        tags = tagArray.map(t => `<span class="tag">${t}</span>`).join("");
+      }
     }
 
     // Сглаживать расхождения - убираем пометки о несоответствиях
-    if (settings.smoothDiscrepancies && item.status === 'UNKNOWN') {
-      // Не показываем статус UNKNOWN как проблему
+    if (settings.smoothDiscrepancies) {
+      // Не показываем статус UNKNOWN как проблему - меняем на обычный badge
+      if (item.status === 'UNKNOWN') {
+        statusDisplay = '<span class="badge">UNKNOWN</span>';
+      }
+      // Убираем предупреждения о неполных данных
+      if (additionalNotes.includes('[неполные данные]')) {
+        additionalNotes = additionalNotes.replace(/\[неполные данные\]/g, '');
+      }
+    }
+
+    // Поведение при несоответствиях - помечать
+    if (settings.mismatchBehavior === 'mark') {
+      // Помечаем записи с несоответствиями
+      const hasMismatch = (item.status === 'ACTIVE' && !item.summary) || 
+                         (item.status === 'UNKNOWN' && !item.title) ||
+                         (item.type && !item.location && !item.tags?.length);
+      if (hasMismatch) {
+        additionalNotes += '<div class="small" style="color: rgba(239, 68, 68, 0.8); margin-top: 4px;">[несоответствие данных]</div>';
+      }
+    }
+
+    // Уровень детализации влияет на отображение
+    const detailLevel = settings.detailLevel !== undefined ? settings.detailLevel : 1;
+    if (detailLevel === 0) {
+      // Сводка - скрываем часть информации
+      if (tags) tags = ""; // Скрываем теги
+      if (item.location) {
+        // Скрываем локацию или показываем сокращённо
+        item.location = item.location.length > 20 ? item.location.substring(0, 20) + '...' : item.location;
+      }
     }
     
     return `
@@ -261,16 +367,19 @@
 
     // Применяем режим интерпретации
     if (settings.interpretationMode === 'conservative') {
-      // Консервативный: меньше записей, меньше деталей
-      // Скрываем записи с неполными данными или низким приоритетом
+      // Консервативный: меньше записей, только проверенные
       filtered = filtered.filter(item => {
-        return item.title && item.summary && item.status !== 'UNKNOWN';
+        // Показываем только записи с полными данными и известным статусом
+        const hasFullData = item.title && item.summary && item.summary.length > 20;
+        const hasKnownStatus = item.status && item.status !== 'UNKNOWN';
+        const hasLocation = item.location || item.tags?.length > 0;
+        return hasFullData && hasKnownStatus && hasLocation;
       });
     } else if (settings.interpretationMode === 'assumptions') {
-      // Допущения: могут появляться дополнительные пометки
-      // Не фильтруем, но добавим пометки при рендеринге
+      // Допущения: показываем больше записей, включая неполные
+      // Не фильтруем дополнительно, но добавим пометки при рендеринге
     } else if (settings.interpretationMode === 'inconsistent') {
-      // Несогласованный: могут появляться противоречия
+      // Несогласованный: показываем все, включая противоречивые
       // Не фильтруем, но добавим противоречия при рендеринге
     }
 
@@ -278,11 +387,24 @@
     if (settings.mismatchBehavior === 'remove') {
       // Удаляем записи с несоответствиями
       filtered = filtered.filter(item => {
-        // Проверяем на несоответствия (например, статус ACTIVE но нет описания)
+        // Проверяем на несоответствия
         if (item.status === 'ACTIVE' && !item.summary) return false;
         if (item.status === 'UNKNOWN' && !item.title) return false;
+        if (item.type && !item.location && !item.tags?.length) return false;
         return true;
       });
+    } else if (settings.mismatchBehavior === 'mark') {
+      // Помечаем записи с несоответствиями (добавим пометки при рендеринге)
+    }
+
+    // Применяем экспериментальные параметры
+    if (settings.showOutsideCompilation) {
+      // Показываем материалы вне компиляции - не фильтруем по типу строго
+    }
+
+    if (settings.allowDelayed) {
+      // Разрешаем отложенные данные - показываем записи даже с неполными данными
+      // Не фильтруем дополнительно
     }
 
     renderStats(filtered);
