@@ -155,7 +155,18 @@
 
         if (error) throw error;
 
-        const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+        let returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+        
+        // Если returnUrl не содержит протокол, это относительный путь
+        if (!returnUrl.startsWith('http')) {
+          // Убеждаемся, что путь правильный
+          if (returnUrl.startsWith('/')) {
+            // Убираем начальный слэш для относительного пути
+            returnUrl = returnUrl.substring(1);
+          }
+        }
+        
+        console.log("Перенаправление на:", returnUrl);
         window.location.href = returnUrl;
       } catch (error) {
         errorEl.textContent = error.message || "Неверный email или пароль";

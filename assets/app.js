@@ -395,13 +395,26 @@
   }
 
   // Обработка изменения уровня доступа
-  accessEl.addEventListener("change", () => {
-    if (accessEl.value === "internal" && !hasInternalAccess()) {
-      // Перенаправляем на страницу входа
-      window.location.href = `login.html?return=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-      return;
+  accessEl.addEventListener("change", async () => {
+    if (accessEl.value === "internal") {
+      const hasAccess = await hasInternalAccess();
+      if (!hasAccess) {
+        // Сохраняем текущий режим доступа в URL
+        const currentUrl = window.location.pathname;
+        const currentSearch = window.location.search;
+        let returnUrl = currentUrl + currentSearch;
+        
+        // Добавляем access=internal к URL, если его там нет
+        if (!returnUrl.includes('access=internal')) {
+          returnUrl += (returnUrl.includes('?') ? '&' : '?') + 'access=internal';
+        }
+        
+        // Перенаправляем на страницу входа
+        window.location.href = `login.html?return=${encodeURIComponent(returnUrl)}`;
+        return;
+      }
     }
-    updateInternalAccessUI();
+    await updateInternalAccessUI();
     render();
   });
 
