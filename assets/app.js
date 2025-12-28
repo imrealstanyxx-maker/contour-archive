@@ -41,17 +41,17 @@
     // Убеждаемся, что у элемента есть поле access
     const itemAccess = item.access || "public";
     
-    // Публичный доступ - только публичные материалы
+    // Строгая проверка: каждый уровень доступа показывает только свои материалы
     if (acc === "public") {
+      // Публичный - ТОЛЬКО публичные (не leak, не internal)
       return itemAccess === "public";
     }
     
-    // Утечка - публичные + утечки (но НЕ внутренние)
     if (acc === "leak") {
+      // Утечка - ТОЛЬКО публичные И утечки (не internal)
       return itemAccess === "public" || itemAccess === "leak";
     }
     
-    // Внутренний доступ - только внутренние материалы
     if (acc === "internal") {
       // Проверяем наличие внутреннего доступа
       if (!hasInternalAccess()) {
@@ -64,7 +64,7 @@
         }
         return false;
       }
-      // С внутренним доступом показываем только внутренние материалы
+      // Внутренний - ТОЛЬКО внутренние материалы
       return itemAccess === "internal";
     }
     
@@ -218,11 +218,37 @@
           }
         });
       }
+      
+      // Добавляем кнопку для возврата баннера в controls
+      let showBannerBtn = document.getElementById("show-banner-btn");
+      if (!showBannerBtn && document.querySelector(".controls")) {
+        showBannerBtn = document.createElement("button");
+        showBannerBtn.id = "show-banner-btn";
+        showBannerBtn.className = "btn-link";
+        showBannerBtn.style.cssText = "background: rgba(90, 200, 250, 0.15); border-color: rgba(90, 200, 250, 0.3); color: #5ac8fa;";
+        showBannerBtn.textContent = "🔓 Внутренний доступ";
+        showBannerBtn.addEventListener("click", () => {
+          if (banner) {
+            banner.style.display = "block";
+            setTimeout(() => banner.classList.add("show"), 100);
+          }
+        });
+        const controls = document.querySelector(".controls");
+        if (controls) {
+          controls.insertBefore(showBannerBtn, controls.firstChild);
+        }
+      }
     } else {
       // Скрываем баннер
       if (banner) {
         banner.classList.remove("show");
         banner.style.display = "none";
+      }
+
+      // Удаляем кнопку возврата баннера
+      const showBannerBtn = document.getElementById("show-banner-btn");
+      if (showBannerBtn) {
+        showBannerBtn.remove();
       }
 
       // Возвращаем обычный подзаголовок
