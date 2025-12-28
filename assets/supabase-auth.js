@@ -204,18 +204,33 @@
   // Проверка внутреннего доступа (admin)
   async function hasInternalAccess() {
     try {
-      const userData = await getUserData();
-      if (!userData) return false;
-      
-      // Проверяем роль напрямую из профиля для надёжности
-      if (userData.level === 'admin') return true;
-      
-      // Дополнительная проверка через профиль
+      const client = getSupabase();
+      if (!client) {
+        console.warn('Supabase client not available');
+        return false;
+      }
+
       const user = await getCurrentUser();
-      if (!user) return false;
-      
+      if (!user) {
+        console.warn('No user found for internal access check');
+        return false;
+      }
+
+      // Проверяем роль напрямую из профиля (более надёжно)
       const profile = await getUserProfile(user.id);
-      return profile && profile.role === 'admin';
+      if (!profile) {
+        console.warn('Profile not found for user:', user.id);
+        return false;
+      }
+
+      const isAdmin = profile.role === 'admin';
+      if (isAdmin) {
+        console.log('Internal access granted: user is admin', { userId: user.id, role: profile.role });
+      } else {
+        console.log('Internal access denied: user is not admin', { userId: user.id, role: profile.role });
+      }
+
+      return isAdmin;
     } catch (error) {
       console.error('Error checking internal access:', error);
       return false;
