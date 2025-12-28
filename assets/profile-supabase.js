@@ -156,14 +156,25 @@
   }
 
   async function loadStats() {
-    const { count } = await supabase
-      .from('community_reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', currentUser.id);
-    
-    return {
-      reportsCount: count || 0
-    };
+    try {
+      const { count, error } = await supabase
+        .from('community_reports')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id);
+      
+      if (error && error.code !== 'PGRST301' && error.code !== '42501') {
+        console.warn('Error loading stats:', error);
+      }
+      
+      return {
+        reportsCount: count || 0
+      };
+    } catch (error) {
+      console.error('Error in loadStats:', error);
+      return {
+        reportsCount: 0
+      };
+    }
   }
 
   function renderHistoryAndFavorites() {
