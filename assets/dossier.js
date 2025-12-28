@@ -242,14 +242,15 @@
         // Специальная обработка для KEF-002 - интерактивное заполнение
         if (entry.id === 'KEF-002') {
           const templateText = entry.templateText || '';
-          let materialHTML = allMaterials.map((m, index) => {
-            const isInternal = m.stamp && m.stamp.includes("INTERNAL");
+          // Показываем только публичные материалы (не internal)
+          const publicMaterials = allMaterials.filter(m => !m.stamp || !m.stamp.includes("INTERNAL"));
+          let materialHTML = publicMaterials.map((m, index) => {
             let materialText = redactify(String(m.text || "")).replace(/\n/g, "<br>");
             let materialTitle = (m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;');
             let materialStamp = (m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             return `
-              <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
+              <div class="block">
                 <div class="block-head">
                   <div class="block-title">${materialTitle}</div>
                   <div class="block-meta">${materialStamp}</div>
