@@ -6,17 +6,18 @@ window.contourGitHub = (() => {
   const API_BASE = 'https://api.github.com';
 
   function getConfig() {
+    // Ждём загрузки CONTOUR_CONFIG
     if (!window.CONTOUR_CONFIG) {
-      throw new Error('CONTOUR_CONFIG не найден');
+      throw new Error('CONTOUR_CONFIG не найден. Убедитесь, что assets/config.js загружен перед assets/github-issues.js');
     }
     const repo = window.CONTOUR_CONFIG.GITHUB_REPO;
     const token = window.CONTOUR_CONFIG.GITHUB_TOKEN;
     
     if (!repo || repo === 'owner/repo') {
-      throw new Error('GITHUB_REPO не настроен');
+      throw new Error('GITHUB_REPO не настроен в assets/config.js');
     }
     if (!token || token === 'YOUR_GITHUB_TOKEN_HERE') {
-      throw new Error('GITHUB_TOKEN не настроен');
+      throw new Error('GITHUB_TOKEN не настроен в assets/config.js');
     }
     
     return { repo, token };

@@ -157,8 +157,16 @@
 
   async function loadReports() {
     try {
+      // Ждём загрузки github-issues.js
+      let attempts = 0;
+      while (!window.contourGitHub && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
       if (!window.contourGitHub) {
         showError('GitHub Issues API не загружен. Проверьте подключение assets/github-issues.js');
+        console.error('window.contourGitHub is not available');
         return;
       }
 
