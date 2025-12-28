@@ -123,12 +123,13 @@
         `;
       }
 
-      // Материалы - показываем все, включая internal
+      // Материалы - показываем все, включая internal (если есть доступ)
       if (els.blocks) {
         let allMaterials = Array.isArray(entry.materials) ? [...entry.materials] : [];
         
-        // Добавляем внутренние материалы, если есть
-        if (Array.isArray(entry.internalMaterials)) {
+        // Добавляем внутренние материалы только если есть внутренний доступ
+        const hasInternalAccess = localStorage.getItem('contour_internal_access') === 'granted';
+        if (hasInternalAccess && Array.isArray(entry.internalMaterials)) {
           allMaterials = [...allMaterials, ...entry.internalMaterials];
         }
 
