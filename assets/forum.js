@@ -378,14 +378,22 @@ if (window.location.pathname.includes("forum.html")) {
           return;
         }
 
-        const topic = window.contourForum.createTopic(title, content);
-        if (topic) {
-          document.body.removeChild(modal);
-          window.location.href = `topic.html?id=${encodeURIComponent(topic.id)}`;
-        } else {
-          errorEl.textContent = "Ошибка при создании темы";
-          errorEl.style.display = "block";
-        }
+        (async () => {
+          try {
+            const topic = await window.contourForum.createTopic(title, content);
+            if (topic) {
+              document.body.removeChild(modal);
+              window.location.href = `topic.html?id=${encodeURIComponent(topic.id)}`;
+            } else {
+              errorEl.textContent = "Ошибка при создании темы. Убедитесь, что вы авторизованы и верифицированы.";
+              errorEl.style.display = "block";
+            }
+          } catch (error) {
+            console.error('Error creating topic:', error);
+            errorEl.textContent = "Ошибка при создании темы. Попробуйте позже.";
+            errorEl.style.display = "block";
+          }
+        })();
       });
 
       cancelBtn.addEventListener("click", () => {
