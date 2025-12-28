@@ -99,9 +99,10 @@
       }
     } else {
       // Всегда показываем кнопки входа и регистрации, если не авторизованы
+      // Выделяем их визуально для лучшей заметности
       authButtonsEl.innerHTML = `
-        <a class="btn-link" href="login.html">Вход</a>
-        <a class="btn-link" href="register.html">Регистрация</a>
+        <a class="btn-link" href="login.html" style="background: rgba(90, 200, 250, 0.2); border-color: rgba(90, 200, 250, 0.4); color: #5ac8fa; font-weight: 500;">Вход</a>
+        <a class="btn-link" href="register.html" style="background: rgba(52, 211, 153, 0.15); border-color: rgba(52, 211, 153, 0.3); color: #34d399; font-weight: 500;">Регистрация</a>
       `;
       if (forumLinkEl) forumLinkEl.style.display = "none";
       if (communityLinkEl) communityLinkEl.style.display = "none";

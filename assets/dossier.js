@@ -37,6 +37,49 @@
   }
   
   async function runDossier(data) {
+    // Основная логика досье
+    const id = qs("id");
+    if (!id) {
+      const elHead = document.getElementById("head");
+      const elMeta = document.getElementById("meta");
+      const elBlocks = document.getElementById("blocks");
+      const elNote = document.getElementById("editorNote");
+      
+      if (elHead) elHead.textContent = "Ошибка";
+      if (elMeta) elMeta.innerHTML = `<div class="note">Не указан ID досье.</div>`;
+      if (elBlocks) elBlocks.innerHTML = "";
+      if (elNote) elNote.textContent = "—";
+      return;
+    }
+
+    const entry = data.find(x => x.id === id);
+
+    const elHead = document.getElementById("head");
+    const elMeta = document.getElementById("meta");
+    const elBlocks = document.getElementById("blocks");
+    const elNote = document.getElementById("editorNote");
+
+    if (!entry){
+      elHead.textContent = "Досье не найдено";
+      elMeta.innerHTML = `<div class="note">Запись отсутствует в текущей компиляции.</div>`;
+      elBlocks.innerHTML = "";
+      elNote.textContent = "—";
+      return;
+    }
+
+    const mode = qs("access") || "public";
+    const canView = await canSee(entry, mode);
+    if (!canView){
+      elHead.textContent = "Доступ запрещён";
+      elMeta.innerHTML = `<div class="note">Эта запись недоступна при текущем уровне доступа.</div>`;
+      elBlocks.innerHTML = "";
+      elNote.textContent = "—";
+      return;
+    }
+
+    // Остальная логика рендеринга досье...
+    // (продолжение кода ниже)
+  }
 
   async function hasInternalAccess(){
     // Проверяем через Supabase

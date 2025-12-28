@@ -245,8 +245,9 @@ window.contourForum = (() => {
 
 // Инициализация страницы форума
 if (window.location.pathname.includes("forum.html")) {
-  (() => {
-    if (!window.contourForum.checkForumAccess()) return;
+  (async () => {
+    const hasAccess = await window.contourForum.checkForumAccess();
+    if (!hasAccess) return;
 
     const topicsListEl = document.getElementById("topics-list");
     const newTopicBtn = document.getElementById("new-topic-btn");
