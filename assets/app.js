@@ -117,12 +117,35 @@
     const t = typeEl ? typeEl.value : "all";
     const acc = accessEl ? accessEl.value : "public";
 
-    // Фильтруем данные
-    const filtered = data.filter(item =>
-      matches(item, q) &&
-      typeOk(item, t) &&
-      accessOk(item, acc)
-    );
+    // Проверяем внутренний доступ перед фильтрацией
+    if (acc === "internal") {
+      const hasAccess = hasInternalAccess();
+      if (!hasAccess && accessEl && accessEl.value === "internal") {
+        // Перенаправляем на страницу ввода кода
+        setTimeout(() => {
+          window.location.href = `internal-access.html?return=${encodeURIComponent(window.location.pathname)}`;
+        }, 100);
+        accessEl.value = "public";
+        return;
+      }
+    }
+
+    // Фильтруем данные строго по уровню доступа
+    const filtered = data.filter(item => {
+      const itemAccess = item.access || "public";
+      
+      // Строгая проверка доступа
+      if (acc === "public") {
+        if (itemAccess !== "public") return false;
+      } else if (acc === "leak") {
+        if (itemAccess !== "public" && itemAccess !== "leak") return false;
+      } else if (acc === "internal") {
+        if (itemAccess !== "internal") return false;
+      }
+      
+      // Проверяем поиск и тип
+      return matches(item, q) && typeOk(item, t);
+    });
 
     renderStats(filtered);
 
@@ -214,12 +237,19 @@
         closeBtn.addEventListener("click", () => {
           if (banner) {
             banner.classList.remove("show");
-            setTimeout(() => banner.style.display = "none", 400);
+            setTimeout(() => {
+              banner.style.display = "none";
+              // Показываем кнопку возврата баннера
+              const showBannerBtn = document.getElementById("show-banner-btn");
+              if (showBannerBtn) {
+                showBannerBtn.style.display = "inline-block";
+              }
+            }, 400);
           }
         });
       }
       
-      // Добавляем кнопку для возврата баннера в controls
+      // Добавляем кнопку для возврата баннера в controls (если баннер скрыт)
       let showBannerBtn = document.getElementById("show-banner-btn");
       if (!showBannerBtn && document.querySelector(".controls")) {
         showBannerBtn = document.createElement("button");
@@ -235,8 +265,20 @@
         });
         const controls = document.querySelector(".controls");
         if (controls) {
-          controls.insertBefore(showBannerBtn, controls.firstChild);
+          // Вставляем после кнопок "О архиве" и "Неполная компиляция"
+          const aboutLink = controls.querySelector('a[href="about.html"]');
+          if (aboutLink && aboutLink.nextSibling) {
+            controls.insertBefore(showBannerBtn, aboutLink.nextSibling);
+          } else {
+            controls.appendChild(showBannerBtn);
+          }
         }
+      }
+      
+      // Показываем кнопку только если баннер скрыт
+      if (showBannerBtn) {
+        const isBannerVisible = banner && banner.classList.contains("show");
+        showBannerBtn.style.display = isBannerVisible ? "none" : "inline-block";
       }
     } else {
       // Скрываем баннер
