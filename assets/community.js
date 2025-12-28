@@ -351,11 +351,37 @@
         return;
       }
 
-      const { error } = await supabase
-        .from('community_reports')
-        .insert(reportData);
+      // Убеждаемся, что профиль существует
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', currentUser.id)
+        .single();
 
-      if (error) throw error;
+      if (!existingProfile) {
+        // Создаём профиль, если его нет
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: currentUser.id,
+            username: currentUser.email?.split('@')[0] || 'user',
+            role: 'user'
+          });
+        
+        if (profileError && profileError.code !== '23505') { // Игнорируем дубликаты
+          console.warn('Error creating profile:', profileError);
+        }
+      }
+
+      const { data: insertedData, error } = await supabase
+        .from('community_reports')
+        .insert(reportData)
+        .select();
+
+      if (error) {
+        console.error('Error inserting report:', error);
+        throw error;
+      }
 
       if (formError) formError.style.display = 'none';
       if (formSuccess) {

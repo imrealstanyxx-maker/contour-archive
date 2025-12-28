@@ -448,11 +448,20 @@
 
       let materials = Array.isArray(entry.materials) ? entry.materials : [];
       
-      // Добавляем внутренние материалы для админа
+      // Добавляем внутренние материалы для админа при внутреннем доступе
       if (mode === "internal" && Array.isArray(entry.internalMaterials)) {
         const hasAccess = await hasInternalAccess();
-        if (hasAccess && els.blocks) {
-          const internalBlocks = entry.internalMaterials.map(m => {
+        if (hasAccess) {
+          // Объединяем обычные и внутренние материалы
+          materials = [...materials, ...entry.internalMaterials];
+        }
+      }
+
+      if (els.blocks) {
+        if (materials.length === 0) {
+          els.blocks.innerHTML = `<div class="note">Материалы отсутствуют или были удалены.</div>`;
+        } else {
+          els.blocks.innerHTML = materials.map(m => {
             const isInternal = m.stamp && m.stamp.includes("INTERNAL");
             return `
             <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
@@ -464,23 +473,7 @@
             </div>
             `;
           }).join("");
-          els.blocks.insertAdjacentHTML('beforeend', internalBlocks);
         }
-      }
-
-      if (els.blocks) {
-        els.blocks.innerHTML = materials.map(m => {
-          const isInternal = m.stamp && m.stamp.includes("INTERNAL");
-          return `
-          <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
-            <div class="block-head">
-              <div class="block-title">${(m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-              <div class="block-meta">${(m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-            </div>
-            <div class="block-body">${redactify(String(m.text || "")).replace(/\n/g, "<br>")}</div>
-          </div>
-          `;
-        }).join("") || `<div class="note">Материалы отсутствуют или были удалены.</div>`;
       }
 
       if (els.editorNote) els.editorNote.textContent = entry.editorNote || "—";
