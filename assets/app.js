@@ -433,14 +433,14 @@
     } else if (acc === "internal") {
       body.classList.add("access-internal");
       // Если выбран внутренний доступ И он активирован - добавляем дополнительный класс
-      if (hasInternalAccess) {
+      if (hasInternal) {
         body.classList.add("has-internal-access");
       }
     }
     
     // Обновляем подзаголовок с учетом текущего фильтра
     const subtitle = document.getElementById("subtitle");
-    if (subtitle && hasInternalAccess) {
+    if (subtitle && hasInternal) {
       if (acc === "internal") {
         subtitle.textContent = "Внутренний доступ: АКТИВЕН";
         subtitle.style.color = "#5ac8fa";

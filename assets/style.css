@@ -743,49 +743,7 @@ select option:hover {
   transform: rotate(90deg);
 }
 
-/* Internal Mode Styles */
-body.internal-mode {
-  position: relative;
-}
-
-body.internal-mode::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(90, 200, 250, 0.03) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: -1;
-}
-
-body.internal-mode .panel {
-  border-color: rgba(90, 200, 250, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(90, 200, 250, 0.1);
-}
-
-body.internal-mode .card {
-  border-color: rgba(90, 200, 250, 0.12);
-}
-
-body.internal-mode .card:hover {
-  border-color: rgba(90, 200, 250, 0.3);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(90, 200, 250, 0.2);
-}
-
-body.internal-mode .stat {
-  border-color: rgba(90, 200, 250, 0.15);
-}
-
-body.internal-mode .stat:hover {
-  border-color: rgba(90, 200, 250, 0.25);
-  background: rgba(90, 200, 250, 0.05);
-}
-
-body.internal-mode .top {
-  border-bottom-color: rgba(90, 200, 250, 0.2);
-}
+/* Старые стили internal-mode удалены - теперь используется access-internal.has-internal-access */
 
 /* Smooth scroll */
 html {
