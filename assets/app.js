@@ -5,8 +5,17 @@
   const qEl = document.getElementById("q");
   const typeEl = document.getElementById("type");
   const accessEl = document.getElementById("access");
-  const listEl = document.getElementById("list");
+  const listEl = document.getElementById("list"); // Оставляем для обратной совместимости, но не используем
   const statsEl = document.getElementById("stats");
+  
+  // Элементы секций
+  const sectionKes = document.getElementById("section-kes");
+  const sectionKem = document.getElementById("section-kem");
+  const sectionKef = document.getElementById("section-kef");
+  const sectionEmpty = document.getElementById("section-empty");
+  const listKes = document.getElementById("list-kes");
+  const listKem = document.getElementById("list-kem");
+  const listKef = document.getElementById("list-kef");
 
   // Данные
   const data = Array.isArray(window.CONTOUR_DATA) ? window.CONTOUR_DATA : [];
@@ -110,9 +119,28 @@
     `;
   }
 
-  function renderList() {
-    if (!listEl) return;
+  // Рендер одной карточки
+  function renderCard(item) {
+    const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
+    const isInternal = item.access === "internal";
+    
+    return `
+      <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="card" ${isInternal ? 'data-internal="true"' : ''}>
+        <div class="row">
+          <div>${item.id}</div>
+          <div>${item.type}</div>
+          ${statusBadge(item.status)}
+          ${isInternal ? '<span class="badge" style="background: rgba(90, 200, 250, 0.15); border-color: rgba(90, 200, 250, 0.3); color: #5ac8fa;">INTERNAL</span>' : ''}
+        </div>
+        <div class="title">${item.title}</div>
+        <div class="small">${item.summary || ""}</div>
+        ${tags ? `<div class="tags">${tags}</div>` : ""}
+        ${item.location ? `<div class="small" style="margin-top: 8px; color: rgba(255,255,255,0.6);">📍 ${item.location}</div>` : ""}
+      </a>
+    `;
+  }
 
+  function renderList() {
     const q = qEl ? qEl.value.trim() : "";
     const t = typeEl ? typeEl.value : "all";
     const acc = accessEl ? accessEl.value : "public";
@@ -143,31 +171,67 @@
 
     renderStats(filtered);
 
-    // Рендерим список
-    if (filtered.length === 0) {
-      listEl.innerHTML = `<div class="note">Ничего не найдено.</div>`;
-      return;
+    // Распределяем по категориям
+    const kesItems = [];
+    const kemItems = [];
+    const kefItems = [];
+
+    filtered.forEach(item => {
+      const category = getCategory(item);
+      if (category === "kes") {
+        kesItems.push(item);
+      } else if (category === "kem") {
+        kemItems.push(item);
+      } else if (category === "kef") {
+        kefItems.push(item);
+      }
+    });
+
+    // Определяем, какие секции показывать на основе фильтра типа
+    let showKes = false;
+    let showKem = false;
+    let showKef = false;
+
+    if (t === "all" || t === "КЕ") {
+      // Показываем все секции, если есть элементы
+      showKes = kesItems.length > 0;
+      showKem = kemItems.length > 0;
+      showKef = kefItems.length > 0;
+    } else if (t === "КЕ-С") {
+      showKes = kesItems.length > 0;
+    } else if (t === "КЕ-М") {
+      showKem = kemItems.length > 0;
+    } else if (t === "КЕ-Ф") {
+      showKef = kefItems.length > 0;
     }
 
-    listEl.innerHTML = filtered.map(item => {
-      const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
-      const isInternal = item.access === "internal";
-      
-      return `
-        <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="card" ${isInternal ? 'data-internal="true"' : ''}>
-          <div class="row">
-            <div>${item.id}</div>
-            <div>${item.type}</div>
-            ${statusBadge(item.status)}
-            ${isInternal ? '<span class="badge" style="background: rgba(90, 200, 250, 0.15); border-color: rgba(90, 200, 250, 0.3); color: #5ac8fa;">INTERNAL</span>' : ''}
-          </div>
-          <div class="title">${item.title}</div>
-          <div class="small">${item.summary || ""}</div>
-          ${tags ? `<div class="tags">${tags}</div>` : ""}
-          ${item.location ? `<div class="small" style="margin-top: 8px; color: rgba(255,255,255,0.6);">📍 ${item.location}</div>` : ""}
-        </a>
-      `;
-    }).join("");
+    // Рендерим секции
+    if (listKes) {
+      listKes.innerHTML = kesItems.map(renderCard).join("");
+    }
+    if (listKem) {
+      listKem.innerHTML = kemItems.map(renderCard).join("");
+    }
+    if (listKef) {
+      listKef.innerHTML = kefItems.map(renderCard).join("");
+    }
+
+    // Показываем/скрываем секции
+    if (sectionKes) {
+      sectionKes.style.display = showKes ? "block" : "none";
+    }
+    if (sectionKem) {
+      sectionKem.style.display = showKem ? "block" : "none";
+    }
+    if (sectionKef) {
+      sectionKef.style.display = showKef ? "block" : "none";
+    }
+
+    // Показываем сообщение "Ничего не найдено", если все секции пусты
+    const hasAnyItems = kesItems.length > 0 || kemItems.length > 0 || kefItems.length > 0;
+    if (sectionEmpty) {
+      sectionEmpty.style.display = hasAnyItems ? "none" : "block";
+    }
   }
 
   // Отключение внутреннего доступа
