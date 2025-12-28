@@ -373,8 +373,14 @@
     // Показываем команду
     print(`> ${trimmed}`, 'terminal-prompt');
 
+    // Обработка /help как алиаса для help
+    let commandInput = trimmed;
+    if (commandInput.startsWith('/')) {
+      commandInput = commandInput.substring(1);
+    }
+
     // Парсим команду
-    const parts = trimmed.split(/\s+/);
+    const parts = commandInput.split(/\s+/);
     const cmd = parts[0].toLowerCase();
     const args = parts.slice(1).join(' ');
 
