@@ -107,11 +107,9 @@
         communityLinkEl.style.display = "none";
       }
       
-      // Показываем ссылку на форум только для верифицированных
-      if (forumLinkEl && userData.verified) {
+      // Показываем ссылку на форум для всех авторизованных (верификация не обязательна)
+      if (forumLinkEl) {
         forumLinkEl.style.display = "inline-block";
-      } else if (forumLinkEl) {
-        forumLinkEl.style.display = "none";
       }
     } else {
       // Всегда показываем кнопки входа и регистрации, если не авторизованы
