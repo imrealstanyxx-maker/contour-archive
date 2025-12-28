@@ -112,8 +112,26 @@
           const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
           if (user && !userError) {
             console.log("Пользователь уже авторизован, перенаправление...");
-            const returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
-            window.location.href = returnUrl;
+            let returnUrl = new URLSearchParams(location.search).get("return") || "index.html";
+            
+            // Если returnUrl не содержит протокол, это относительный путь
+            if (!returnUrl.startsWith('http')) {
+              // Убеждаемся, что путь правильный
+              if (returnUrl.startsWith('/')) {
+                // Убираем начальный слэш для относительного пути
+                returnUrl = returnUrl.substring(1);
+              }
+              // Если путь начинается с contour-archive, убираем это
+              if (returnUrl.startsWith('contour-archive/')) {
+                returnUrl = returnUrl.replace('contour-archive/', '');
+              }
+            }
+            
+            console.log("Перенаправление на:", returnUrl);
+            // Небольшая задержка для обновления сессии
+            setTimeout(() => {
+              window.location.href = returnUrl;
+            }, 100);
             return;
           } else {
             console.log("Пользователь не авторизован, показываем форму входа");
