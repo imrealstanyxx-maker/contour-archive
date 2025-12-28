@@ -123,9 +123,19 @@
         `;
       }
 
-      // Материалы - показываем все, включая internal (если есть доступ)
+      // Материалы - показываем все, включая internal и leak (если есть доступ)
       if (els.blocks) {
         let allMaterials = Array.isArray(entry.materials) ? [...entry.materials] : [];
+        
+        // Проверяем, откуда открыто досье (из какого фильтра доступа)
+        const referrer = document.referrer;
+        const isFromLeak = referrer.includes('access=leak') || sessionStorage.getItem('last_access_filter') === 'leak';
+        const isFromInternal = referrer.includes('access=internal') || sessionStorage.getItem('last_access_filter') === 'internal';
+        
+        // Добавляем материалы утечек, если просматриваем из фильтра утечек
+        if (isFromLeak && entry.access === "leak" && Array.isArray(entry.leakMaterials)) {
+          allMaterials = [...allMaterials, ...entry.leakMaterials];
+        }
         
         // Добавляем внутренние материалы только если есть внутренний доступ
         const hasInternalAccess = localStorage.getItem('contour_internal_access') === 'granted';

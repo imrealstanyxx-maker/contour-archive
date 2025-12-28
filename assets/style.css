@@ -610,6 +610,19 @@ select option:hover {
   color: rgba(90, 200, 250, 0.7);
 }
 
+.block[data-leak="true"] {
+  border-color: rgba(245, 158, 11, 0.2);
+  background: rgba(40, 30, 15, 0.2);
+}
+
+.block[data-leak="true"] .block-title {
+  color: rgba(245, 158, 11, 0.9);
+}
+
+.block[data-leak="true"] .block-meta {
+  color: rgba(245, 158, 11, 0.6);
+}
+
 .redacted {
   background: rgba(0, 0, 0, 0.4);
   color: rgba(255, 255, 255, 0.2);

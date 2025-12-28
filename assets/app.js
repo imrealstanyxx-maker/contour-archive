@@ -419,7 +419,7 @@
   function updateAccessTheme() {
     const acc = accessEl ? accessEl.value : "public";
     const body = document.body;
-    const hasInternalAccess = hasInternalAccess();
+    const hasInternal = hasInternalAccess();
     
     // Удаляем все классы доступа
     body.classList.remove("access-public", "access-leak", "access-internal", "internal-mode");
