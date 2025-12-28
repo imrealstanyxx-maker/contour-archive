@@ -146,6 +146,7 @@
 
   async function loadReports() {
     try {
+      // Загружаем все доступные заявки (RLS сам отфильтрует по правам)
       const { data, error } = await supabase
         .from('community_reports')
         .select(`
@@ -157,19 +158,23 @@
       if (error) {
         // RLS может блокировать - это нормально
         if (error.code === 'PGRST301' || error.code === '42501') {
+          console.warn('RLS blocked reports access, user may not be authenticated');
           allReports = [];
           renderReports();
           return;
         }
+        console.error('Error loading reports:', error);
         throw error;
       }
 
       allReports = data || [];
+      console.log('Loaded reports:', allReports.length, allReports);
       renderReports();
     } catch (error) {
       console.error('Error loading reports:', error);
       showError(error.message || 'Не удалось загрузить наблюдения.');
       allReports = [];
+      renderReports();
     }
   }
 
@@ -199,10 +204,10 @@
           }
           break;
         default:
-          // Все доступные пользователю
+          // Все доступные пользователю (включая pending для автора)
           filtered = allReports.filter(r => {
             if (r.status === 'final_approved' || r.status === 'unofficial_approved') return true;
-            if (r.user_id === currentUser.id) return true;
+            if (r.user_id === currentUser.id) return true; // Автор видит все свои заявки (включая pending и rejected)
             if (userProfile?.role === 'admin') return true;
             return false;
           });
