@@ -515,6 +515,119 @@
     }
   }
 
+  // Инициализация интерактивного редактора шаблона для KEF-002
+  function initTemplateEditor(templateText) {
+    if (!templateText) return;
+
+    const btn = document.getElementById('fill-template-btn');
+    const container = document.getElementById('template-editor-container');
+    const editor = document.getElementById('template-editor');
+    const errorMsg = document.getElementById('template-error');
+
+    if (!btn || !container || !editor || !errorMsg) return;
+
+    let cursorIndex = 0;
+    let isActive = false;
+    let isComplete = false;
+
+    // Обработка сбоев (вставляем каждые 120-180 символов)
+    const glitchPositions = [];
+    let currentPos = 0;
+    while (currentPos < templateText.length) {
+      const glitchPos = currentPos + 120 + Math.floor(Math.random() * 60);
+      if (glitchPos < templateText.length) {
+        glitchPositions.push(glitchPos);
+        currentPos = glitchPos;
+      } else {
+        break;
+      }
+    }
+
+    // Добавляем сбои в текст
+    let textWithGlitches = templateText;
+    for (let i = glitchPositions.length - 1; i >= 0; i--) {
+      const pos = glitchPositions[i];
+      const glitchText = i % 2 === 0 ? '\n[правка не требуется]\n' : '\n(совпадение подтверждено)\n';
+      textWithGlitches = textWithGlitches.slice(0, pos) + glitchText + textWithGlitches.slice(pos);
+    }
+
+    btn.addEventListener('click', () => {
+      if (isComplete) {
+        errorMsg.textContent = 'Материал уже заполнен. Дополнение запрещено.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      container.style.display = 'block';
+      editor.value = '';
+      editor.readOnly = false;
+      editor.focus();
+      cursorIndex = 0;
+      isActive = true;
+      btn.style.display = 'none';
+      errorMsg.style.display = 'none';
+    });
+
+    // Обработка всех событий клавиатуры
+    editor.addEventListener('keydown', (e) => {
+      if (!isActive || isComplete) {
+        e.preventDefault();
+        return;
+      }
+
+      e.preventDefault();
+
+      // Проверяем, не закончился ли шаблон
+      if (cursorIndex >= textWithGlitches.length) {
+        isComplete = true;
+        editor.readOnly = true;
+        errorMsg.textContent = 'Материал уже заполнен. Дополнение запрещено.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      // Получаем следующий символ(ы) из шаблона
+      let nextChar = textWithGlitches[cursorIndex];
+      
+      // Если это Enter в шаблоне, вставляем перенос строки
+      if (nextChar === '\n') {
+        editor.value += '\n';
+        cursorIndex++;
+      } else {
+        // Вставляем символ в конец текста (игнорируем позицию курсора)
+        editor.value += nextChar;
+        cursorIndex++;
+      }
+
+      // Обновляем прозрачность текста
+      const progress = cursorIndex / textWithGlitches.length;
+      const opacity = 0.3 + (progress * 0.7);
+      editor.style.opacity = opacity.toString();
+      editor.style.color = `rgba(255, 255, 255, ${opacity})`;
+
+      // Прокручиваем вниз
+      editor.scrollTop = editor.scrollHeight;
+
+      // Проверяем завершение
+      if (cursorIndex >= textWithGlitches.length) {
+        isComplete = true;
+        editor.readOnly = true;
+        errorMsg.textContent = 'Материал уже заполнен. Дополнение запрещено.';
+        errorMsg.style.display = 'block';
+      }
+    });
+
+    // Предотвращаем вставку через Ctrl+V
+    editor.addEventListener('paste', (e) => {
+      e.preventDefault();
+    });
+
+    // Предотвращаем контекстное меню
+    editor.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+  }
+
   // Запуск при загрузке страницы
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', runDossier);
