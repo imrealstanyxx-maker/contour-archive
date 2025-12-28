@@ -348,7 +348,7 @@
 
     // Отделяем угрозы от обычных записей
     // Угрозы показываются всегда, независимо от фильтра доступа
-    const threats = data.filter(item => item.isThreat === true && !item.locked);
+    const threats = data.filter(item => item.isThreat === true);
     const regularData = data.filter(item => !item.isThreat);
 
     // Получаем настройки

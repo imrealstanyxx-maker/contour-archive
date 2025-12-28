@@ -275,7 +275,7 @@
             </div>
           `;
 
-          // Добавляем внутренний блок, если есть доступ
+          // Добавляем внутренний блок только если есть доступ (без заглушки)
           if (hasInternalAccess && Array.isArray(entry.internalMaterials) && entry.internalMaterials.length > 0) {
             const internalMaterial = entry.internalMaterials[0];
             materialHTML += `
@@ -285,17 +285,6 @@
                   <div class="block-meta">${(internalMaterial.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
                 </div>
                 <div class="block-body">${redactify(String(internalMaterial.text || "")).replace(/\n/g, "<br>")}</div>
-              </div>
-            `;
-          } else if (Array.isArray(entry.internalMaterials) && entry.internalMaterials.length > 0) {
-            materialHTML += `
-              <div class="block" data-internal="true">
-                <div class="block-head">
-                  <div class="block-title">Внутренний отчёт</div>
-                </div>
-                <div class="block-body">
-                  <div class="note" style="color: rgba(255, 255, 255, 0.6);">Внутренний отчёт недоступен.</div>
-                </div>
               </div>
             `;
           }
