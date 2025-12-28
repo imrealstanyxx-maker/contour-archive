@@ -234,6 +234,7 @@
       print('  grep <word>   — поиск по фрагментам');
       print('  decode <str>  — декодировать (base64/hex)');
       print('  verify <key>  — проверить ключ доступа');
+      print('Примечание: часть контейнеров недоступна (шифрование).');
     },
 
     clear: () => {
@@ -258,7 +259,11 @@
         return;
       }
       available.forEach(f => {
-        print(`  ${f.name} (${f.id})`);
+        if (f.encrypted) {
+          print(`  ${f.name} (${f.id}) [зашифрован]`);
+        } else {
+          print(`  ${f.name} (${f.id})`);
+        }
       });
     },
 
@@ -272,6 +277,11 @@
         print('совпадений не найдено');
         return;
       }
+      if (fragment.encrypted) {
+        print('Невозможно прочитать: контейнер зашифрован.');
+        print('Причина: сверка не завершена.');
+        return;
+      }
       printMultiline(fragment.content);
     },
 
@@ -283,6 +293,11 @@
       const fragment = findFragment(args.trim());
       if (!fragment) {
         print('совпадений не найдено');
+        return;
+      }
+      if (fragment.encrypted) {
+        print('Невозможно прочитать: контейнер зашифрован.');
+        print('Причина: сверка не завершена.');
         return;
       }
       printMultiline(fragment.content);

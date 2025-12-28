@@ -123,14 +123,19 @@
       availableFragments.splice(randomIndex, 1);
     }
     
-    // Иногда (20% вероятность) добавляем строку о неполноте списка
-    if (Math.random() < 0.2) {
-      availableFragments.push("Список неполон.");
-    }
+    // Фильтруем фрагменты, связанные с KES-001 и KEM-002
+    const allowedFragments = availableFragments.filter(f => {
+      return f.includes('КЕ-С/001') || f.includes('КЕ-М/002') || 
+             f.includes('лестничн') || f.includes('Лицо №0') ||
+             f.includes('Картотека-7');
+    });
     
-    // При большом количестве посещений иногда добавляем "стабилизацию"
-    if (state.visitCount > 10 && Math.random() < 0.15) {
-      availableFragments.push("Часть материалов восстановлена в ходе повторной сверки.");
+    // Добавляем строку-заглушку в конце
+    availableFragments = [...allowedFragments];
+    if (availableFragments.length < baseFragments.filter(f => f.weight === 1).length) {
+      availableFragments.push("Список сокращён. Часть материалов исключена и зашифрована.");
+    } else {
+      availableFragments.push("Список сокращён. Часть материалов исключена и зашифрована.");
     }
     
     // Сохраняем состояние

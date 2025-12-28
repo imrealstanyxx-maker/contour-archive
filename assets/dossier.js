@@ -83,6 +83,31 @@
         return;
       }
 
+      // Проверяем, заблокирована ли запись
+      if (entry.locked === true) {
+        const els = getElements();
+        if (els.head) {
+          els.head.textContent = "Досье недоступно";
+        }
+        if (els.meta) {
+          els.meta.innerHTML = `<div class="note" style="color: rgba(255, 255, 255, 0.7);">
+            <p>Файл зашифрован.</p>
+            <p>Доступ к материалам временно ограничен.</p>
+            <p>Повторные запросы фиксируются.</p>
+          </div>`;
+        }
+        if (els.blocks) {
+          els.blocks.innerHTML = "";
+        }
+        if (els.editorNote) {
+          els.editorNote.textContent = "—";
+        }
+        if (els.internalNoteSection) {
+          els.internalNoteSection.style.display = "none";
+        }
+        return;
+      }
+
       const els = getElements();
       
       // Проверяем, является ли это угрозой

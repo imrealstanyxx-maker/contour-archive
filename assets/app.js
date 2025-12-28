@@ -348,20 +348,32 @@
 
     // Отделяем угрозы от обычных записей
     // Угрозы показываются всегда, независимо от фильтра доступа
-    const threats = data.filter(item => item.isThreat === true);
+    const threats = data.filter(item => item.isThreat === true && !item.locked);
     const regularData = data.filter(item => !item.isThreat);
 
     // Получаем настройки
     const settings = window.getContourSettings ? window.getContourSettings() : {};
     
-    // Фильтруем обычные данные строго по уровню доступа
+    // Фильтруем обычные данные строго по уровню доступа и проверяем locked
     let filtered = regularData.filter(item => {
+      // Показываем только незаблокированные записи (KES-001 и KEM-002)
+      if (item.locked === true) {
+        return false;
+      }
+      
       // Сначала проверяем доступ через функцию accessOk
       if (!accessOk(item, acc)) {
         return false;
       }
       
       // Затем проверяем поиск и тип
+      return matches(item, q) && typeOk(item, t);
+    });
+    
+    // Проверяем, есть ли заблокированные записи, которые соответствуют фильтрам
+    const hasLockedItems = regularData.some(item => {
+      if (item.locked !== true) return false;
+      if (!accessOk(item, acc)) return false;
       return matches(item, q) && typeOk(item, t);
     });
 

@@ -367,6 +367,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "KEF-003",
+    locked: true,
     type: "КЕ-Ф",
     status: "ACTIVE",
     access: "public",
@@ -497,6 +498,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "KEM-004",
+    locked: true,
     type: "КЕ-М",
     status: "UNKNOWN",
     access: "leak",
@@ -647,6 +649,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "KES-005",
+    locked: true,
     type: "КЕ-С",
     status: "ACTIVE",
     access: "leak",
@@ -812,6 +815,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "KEF-006",
+    locked: true,
     type: "КЕ-Ф",
     status: "UNKNOWN",
     access: "public",
@@ -971,6 +975,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "KEM-007",
+    locked: true,
     type: "КЕ-М",
     status: "ACTIVE",
     access: "internal",
@@ -1087,6 +1092,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "KES-008",
+    locked: true,
     type: "КЕ-С",
     status: "UNKNOWN",
     access: "public",
@@ -1272,6 +1278,7 @@ window.CONTOUR_DATA = [
   // Активные угрозы
   {
     id: "THREAT-001",
+    locked: true,
     type: "УГРОЗА",
     status: "ACTIVE",
     access: "public",
@@ -1290,6 +1297,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "THREAT-002",
+    locked: true,
     type: "УГРОЗА",
     status: "ACTIVE",
     access: "public",
@@ -1308,6 +1316,7 @@ window.CONTOUR_DATA = [
 
   {
     id: "THREAT-003",
+    locked: true,
     type: "УГРОЗА",
     status: "ACTIVE",
     access: "public",
