@@ -377,6 +377,24 @@
     renderStats(filtered);
 
     listEl.innerHTML = filtered.map(x => card(x, mode)).join("");
+    
+    // После рендера проверяем доступ админа и показываем internal материалы
+    if (mode === "internal") {
+      hasInternalAccess().then(hasAccess => {
+        if (hasAccess) {
+          // Показываем internal записи для админа
+          const internalItems = data.filter(x => x.access === "internal");
+          if (internalItems.length > 0) {
+            const existingIds = new Set(filtered.map(x => x.id));
+            const newItems = internalItems.filter(x => !existingIds.has(x.id));
+            if (newItems.length > 0) {
+              listEl.insertAdjacentHTML('beforeend', newItems.map(x => card(x, mode)).join(""));
+              renderStats([...filtered, ...newItems]);
+            }
+          }
+        }
+      });
+    }
 
     if (!filtered.length){
       // КОРРЕКТНАЯ ОШИБКА: "ничего не найдено" - правда, но неполная

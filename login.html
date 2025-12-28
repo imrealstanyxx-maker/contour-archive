@@ -164,10 +164,17 @@
             // Убираем начальный слэш для относительного пути
             returnUrl = returnUrl.substring(1);
           }
+          // Если путь начинается с contour-archive, убираем это
+          if (returnUrl.startsWith('contour-archive/')) {
+            returnUrl = returnUrl.replace('contour-archive/', '');
+          }
         }
         
         console.log("Перенаправление на:", returnUrl);
-        window.location.href = returnUrl;
+        // Небольшая задержка для обновления сессии
+        setTimeout(() => {
+          window.location.href = returnUrl;
+        }, 200);
       } catch (error) {
         errorEl.textContent = error.message || "Неверный email или пароль";
         errorEl.style.display = "block";
