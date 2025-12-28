@@ -73,15 +73,28 @@ CREATE POLICY "Users can read own profile"
   ON profiles FOR SELECT
   USING (auth.uid() = id);
 
+-- Функция для проверки админа (избегаем рекурсии)
+-- Должна быть создана ДО политик RLS
+CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+BEGIN
+  -- Прямой доступ к таблице без RLS через SECURITY DEFINER
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = user_id AND role = 'admin'
+  );
+END;
+$$;
+
 DROP POLICY IF EXISTS "Admins can read all profiles" ON profiles;
 CREATE POLICY "Admins can read all profiles"
   ON profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile"
@@ -132,22 +145,14 @@ CREATE POLICY "Authors and admins can read own pending/rejected"
   ON community_reports FOR SELECT
   USING (
     auth.uid() = user_id OR
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
+    public.is_admin(auth.uid())
   );
 
 -- Обновление: только админы
 DROP POLICY IF EXISTS "Admins can update reports" ON community_reports;
 CREATE POLICY "Admins can update reports"
   ON community_reports FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+  USING (public.is_admin(auth.uid()));
 
 -- Функция для автоматического создания профиля
 CREATE OR REPLACE FUNCTION public.handle_new_user()
