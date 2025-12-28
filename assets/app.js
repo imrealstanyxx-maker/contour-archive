@@ -147,24 +147,12 @@
 
   // Рендер карточки угрозы
   function renderThreatCard(item) {
-    const threat = item.threat || {};
-    let shortDesc = '';
-    
-    // Короткое описание механики для каждой угрозы
-    if (item.id === 'THREAT-001') {
-      shortDesc = 'Состояние среды: тело теряет чувство усилия, обычные действия становятся смертельными.';
-    } else if (item.id === 'THREAT-002') {
-      shortDesc = 'При нескольких свидетелях действия не завершаются физически, помощь не оказывается.';
-    } else if (item.id === 'THREAT-003') {
-      shortDesc = 'Место перестаёт учитывать присутствие, человек исключается из контекста и погибает.';
-    }
-    
     return `
       <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="threat-card">
         <div class="threat-warning">Подтверждён риск для жизни</div>
         <div class="threat-id">${item.id}</div>
-        <div class="threat-title">${item.title}</div>
-        ${shortDesc ? `<div class="threat-desc">${shortDesc}</div>` : ''}
+        <div class="threat-title">ЗАСЕКРЕЧЕНО</div>
+        <div class="threat-desc">ЗАСЕКРЕЧЕНО</div>
       </a>
     `;
   }
