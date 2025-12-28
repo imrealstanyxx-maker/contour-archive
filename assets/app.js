@@ -144,15 +144,27 @@
   // Рендер одной карточки
   function renderCard(item) {
     const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
-    const isInternal = item.access === "internal";
+    const itemAccess = item.access || "public";
+    let accessBadge = "";
+    let dataAccess = "";
+    
+    if (itemAccess === "internal") {
+      accessBadge = '<span class="badge" style="background: rgba(90, 200, 250, 0.15); border-color: rgba(90, 200, 250, 0.3); color: #5ac8fa;">INTERNAL</span>';
+      dataAccess = 'data-access="internal"';
+    } else if (itemAccess === "leak") {
+      accessBadge = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;">LEAK</span>';
+      dataAccess = 'data-access="leak"';
+    } else {
+      dataAccess = 'data-access="public"';
+    }
     
     return `
-      <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="card" ${isInternal ? 'data-internal="true"' : ''}>
+      <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="card" ${dataAccess}>
         <div class="row">
           <div>${item.id}</div>
           <div>${item.type}</div>
           ${statusBadge(item.status)}
-          ${isInternal ? '<span class="badge" style="background: rgba(90, 200, 250, 0.15); border-color: rgba(90, 200, 250, 0.3); color: #5ac8fa;">INTERNAL</span>' : ''}
+          ${accessBadge}
         </div>
         <div class="title">${item.title}</div>
         <div class="small">${item.summary || ""}</div>
