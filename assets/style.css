@@ -79,31 +79,50 @@ body.access-leak .select:focus {
   box-shadow: 0 0 0 4px var(--access-leak-accent);
 }
 
-/* Внутренний доступ - синий (уже есть, но обновим для консистентности) */
-body.access-internal a,
-body.internal-mode a {
+/* Внутренний доступ - синий */
+body.access-internal a {
   color: var(--access-internal-color);
 }
 
-body.access-internal .card:hover,
-body.internal-mode .card:hover {
+body.access-internal .card:hover {
   border-color: var(--access-internal-border);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--access-internal-accent);
 }
 
-body.access-internal .card::before,
-body.internal-mode .card::before {
+body.access-internal .card::before {
   background: linear-gradient(90deg, transparent, var(--access-internal-accent), transparent);
 }
 
-body.access-internal .category-section,
-body.internal-mode .category-section {
+body.access-internal .category-section {
   border-left-color: var(--access-internal-border);
 }
 
-body.access-internal .category-section .panel-title,
-body.internal-mode .category-section .panel-title {
+body.access-internal .category-section .panel-title {
   border-bottom-color: var(--access-internal-border);
+}
+
+body.access-internal .input:focus,
+body.access-internal .select:focus {
+  border-color: var(--access-internal-border);
+  box-shadow: 0 0 0 4px var(--access-internal-accent);
+}
+
+/* Дополнительные стили для внутреннего доступа (не конфликтуют с цветовой схемой) */
+body.has-internal-access .internal-banner {
+  /* Баннер всегда виден, если есть доступ */
+}
+
+/* Плавные переходы между цветовыми схемами */
+body.access-public,
+body.access-leak,
+body.access-internal {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.access-public *,
+body.access-leak *,
+body.access-internal * {
+  transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 a {

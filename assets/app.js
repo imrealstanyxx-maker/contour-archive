@@ -286,6 +286,7 @@
     const banner = document.getElementById("internal-access-banner");
     const subtitle = document.getElementById("subtitle");
     const body = document.body;
+    const currentAccess = accessEl ? accessEl.value : "public";
 
     if (hasAccess) {
       // Показываем баннер
@@ -311,15 +312,25 @@
         }
       }
 
-      // Обновляем подзаголовок
+      // Обновляем подзаголовок в зависимости от текущего фильтра
       if (subtitle) {
-        subtitle.textContent = "Внутренний доступ: АКТИВЕН";
-        subtitle.style.color = "#5ac8fa";
+        if (currentAccess === "internal") {
+          subtitle.textContent = "Внутренний доступ: АКТИВЕН";
+          subtitle.style.color = "#5ac8fa";
+        } else {
+          subtitle.textContent = `Публичный архив контурных единиц (внутренний доступ активен, просмотр: ${currentAccess === "public" ? "публичный" : "утечка"})`;
+          subtitle.style.color = currentAccess === "leak" ? "#f59e0b" : "rgba(255, 255, 255, 0.75)";
+        }
       }
 
-      // Добавляем класс для стилизации
+      // Добавляем класс только если выбран внутренний доступ
       if (body) {
-        body.classList.add("internal-mode");
+        if (currentAccess === "internal") {
+          body.classList.add("has-internal-access");
+        } else {
+          body.classList.remove("has-internal-access");
+        }
+        // НЕ добавляем internal-mode, чтобы не конфликтовать с цветовой схемой
       }
 
       // Обработчик закрытия баннера (только один раз)
@@ -387,13 +398,19 @@
 
       // Возвращаем обычный подзаголовок
       if (subtitle) {
-        subtitle.textContent = "Публичный архив контурных единиц (неофициальная компиляция)";
-        subtitle.style.color = "rgba(255, 255, 255, 0.75)";
+        const currentAccess = accessEl ? accessEl.value : "public";
+        if (currentAccess === "leak") {
+          subtitle.textContent = "Публичный архив контурных единиц (неофициальная компиляция) — просмотр утечек";
+          subtitle.style.color = "#f59e0b";
+        } else {
+          subtitle.textContent = "Публичный архив контурных единиц (неофициальная компиляция)";
+          subtitle.style.color = "rgba(255, 255, 255, 0.75)";
+        }
       }
 
-      // Убираем класс
+      // Убираем все классы внутреннего доступа
       if (body) {
-        body.classList.remove("internal-mode");
+        body.classList.remove("internal-mode", "has-internal-access");
       }
     }
   }
@@ -402,17 +419,43 @@
   function updateAccessTheme() {
     const acc = accessEl ? accessEl.value : "public";
     const body = document.body;
+    const hasInternalAccess = hasInternalAccess();
     
     // Удаляем все классы доступа
-    body.classList.remove("access-public", "access-leak", "access-internal");
+    body.classList.remove("access-public", "access-leak", "access-internal", "internal-mode");
     
-    // Добавляем нужный класс
+    // Добавляем нужный класс в зависимости от выбранного фильтра
+    // ВАЖНО: цветовая схема зависит ТОЛЬКО от выбранного фильтра, не от наличия внутреннего доступа
     if (acc === "public") {
       body.classList.add("access-public");
     } else if (acc === "leak") {
       body.classList.add("access-leak");
     } else if (acc === "internal") {
       body.classList.add("access-internal");
+      // Если выбран внутренний доступ И он активирован - добавляем дополнительный класс
+      if (hasInternalAccess) {
+        body.classList.add("has-internal-access");
+      }
+    }
+    
+    // Обновляем подзаголовок с учетом текущего фильтра
+    const subtitle = document.getElementById("subtitle");
+    if (subtitle && hasInternalAccess) {
+      if (acc === "internal") {
+        subtitle.textContent = "Внутренний доступ: АКТИВЕН";
+        subtitle.style.color = "#5ac8fa";
+      } else {
+        subtitle.textContent = `Публичный архив контурных единиц (внутренний доступ активен, просмотр: ${acc === "public" ? "публичный" : "утечка"})`;
+        subtitle.style.color = acc === "leak" ? "#f59e0b" : "rgba(255, 255, 255, 0.75)";
+      }
+    } else if (subtitle) {
+      if (acc === "leak") {
+        subtitle.textContent = "Публичный архив контурных единиц (неофициальная компиляция) — просмотр утечек";
+        subtitle.style.color = "#f59e0b";
+      } else {
+        subtitle.textContent = "Публичный архив контурных единиц (неофициальная компиляция)";
+        subtitle.style.color = "rgba(255, 255, 255, 0.75)";
+      }
     }
   }
 
@@ -429,6 +472,7 @@
       accessEl.addEventListener("change", () => {
         updateAccessTheme();
         renderList();
+        // Обновляем UI внутреннего доступа после смены темы
         updateInternalAccessUI();
       });
     }
