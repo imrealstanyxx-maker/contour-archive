@@ -73,24 +73,6 @@ CREATE POLICY "Users can read own profile"
   ON profiles FOR SELECT
   USING (auth.uid() = id);
 
--- Функция для проверки админа (избегаем рекурсии)
--- Должна быть создана ДО политик RLS
-CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-STABLE
-SET search_path = public
-AS $$
-BEGIN
-  -- Прямой доступ к таблице без RLS через SECURITY DEFINER
-  RETURN EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = user_id AND role = 'admin'
-  );
-END;
-$$;
-
 DROP POLICY IF EXISTS "Admins can read all profiles" ON profiles;
 CREATE POLICY "Admins can read all profiles"
   ON profiles FOR SELECT
@@ -128,7 +110,7 @@ CREATE POLICY "Observers can create reports"
   ON community_reports FOR INSERT
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM profiles
+      SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND role IN ('observer', 'admin')
     )
   );
@@ -158,11 +140,16 @@ CREATE POLICY "Admins can update reports"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)));
+  INSERT INTO public.profiles (id, username, role)
+  VALUES (
+    NEW.id, 
+    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+    'user'
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Триггер для создания профиля при регистрации
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
