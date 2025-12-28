@@ -98,10 +98,10 @@
         forumLinkEl.style.display = "none";
       }
     } else {
+      // Всегда показываем кнопки входа и регистрации, если не авторизованы
       authButtonsEl.innerHTML = `
-        <a class="btn-link" href="login.html" style="background: rgba(90, 200, 250, 0.1); border-color: rgba(90, 200, 250, 0.2);" onclick="event.preventDefault(); window.location.href='login.html'; return false;">
-          Вход
-        </a>
+        <a class="btn-link" href="login.html">Вход</a>
+        <a class="btn-link" href="register.html">Регистрация</a>
       `;
       if (forumLinkEl) forumLinkEl.style.display = "none";
       if (communityLinkEl) communityLinkEl.style.display = "none";
