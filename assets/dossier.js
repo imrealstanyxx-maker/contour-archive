@@ -118,19 +118,15 @@
 
   function saveViewHistory(entry) {
     try {
-      if (window.contourSupabase) {
-        window.contourSupabase.isAuthenticated().then(isAuth => {
-          if (isAuth) {
-            let history = JSON.parse(localStorage.getItem("contour_view_history") || "[]");
-            history.push({
-              id: entry.id,
-              title: entry.title,
-              timestamp: new Date().toISOString()
-            });
-            history = history.slice(-50);
-            localStorage.setItem("contour_view_history", JSON.stringify(history));
-          }
-        }).catch(() => {});
+      if (window.contourAuth && window.contourAuth.isAuthenticated()) {
+        let history = JSON.parse(localStorage.getItem("contour_view_history") || "[]");
+        history.push({
+          id: entry.id,
+          title: entry.title,
+          timestamp: new Date().toISOString()
+        });
+        history = history.slice(-50);
+        localStorage.setItem("contour_view_history", JSON.stringify(history));
       }
     } catch (e) {
       // Игнорируем ошибки
