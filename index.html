@@ -36,6 +36,11 @@
         <option value="internal">Доступ: Внутренний (требуется код)</option>
       </select>
 
+      <button id="toggle-threats" class="btn-threats" title="Активные угрозы">
+        <span class="btn-threats-icon">⚠</span>
+        <span class="btn-threats-text">Угрозы</span>
+      </button>
+
       <a class="btn-link" href="about.html">О архиве</a>
       <a class="btn-link" href="partial.html">Неполная компиляция</a>
     </div>
@@ -59,7 +64,10 @@
     </section>
 
     <section id="section-threats" class="panel threats-section" style="display: none;">
-      <div class="panel-title">Активные угрозы</div>
+      <div class="panel-title">
+        Активные угрозы
+        <button id="close-threats" class="threats-close" title="Скрыть">×</button>
+      </div>
       <div class="panel-body">
         <div id="list-threats" class="threats-grid"></div>
       </div>

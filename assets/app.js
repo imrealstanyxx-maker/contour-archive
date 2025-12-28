@@ -7,6 +7,8 @@
   const accessEl = document.getElementById("access");
   const listEl = document.getElementById("list"); // Оставляем для обратной совместимости, но не используем
   const statsEl = document.getElementById("stats");
+  const toggleThreatsBtn = document.getElementById("toggle-threats");
+  const closeThreatsBtn = document.getElementById("close-threats");
   
   // Элементы секций
   const sectionKes = document.getElementById("section-kes");
