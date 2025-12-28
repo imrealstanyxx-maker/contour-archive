@@ -39,9 +39,25 @@
     localStorage.setItem("contour_system_state", JSON.stringify(state));
   }
 
-  function hasInternalAccess(){
-    if (!window.contourAuth) return false;
-    return window.contourAuth.hasInternalAccess();
+  async function hasInternalAccess(){
+    // Проверяем через Supabase
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      try {
+        if (window.contourSupabase) {
+          return await window.contourSupabase.hasInternalAccess();
+        }
+      } catch (e) {
+        console.warn('Error checking internal access:', e);
+      }
+    }
+    
+    // Fallback на старую систему
+    if (window.contourAuth && window.contourAuth.hasInternalAccess) {
+      const result = window.contourAuth.hasInternalAccess();
+      return result instanceof Promise ? await result : result;
+    }
+    
+    return false;
   }
 
   // Обновляем кнопки входа/профиля
@@ -134,17 +150,38 @@
     }
   }
 
-  function updateInternalAccessUI(){
+  async function updateInternalAccessUI(){
     const body = document.body;
     const sub = document.querySelector(".brand .sub");
     const accessSelect = document.getElementById("access");
-    const hasAccess = hasInternalAccess();
+    
+    // Проверяем доступ через Supabase
+    let hasAccess = false;
+    let userData = null;
+    
+    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
+      try {
+        if (window.contourSupabase) {
+          hasAccess = await window.contourSupabase.hasInternalAccess();
+          if (hasAccess) {
+            userData = await window.contourSupabase.getUserData();
+          }
+        }
+      } catch (e) {
+        console.warn('Error checking internal access:', e);
+      }
+    } else if (window.contourAuth && window.contourAuth.hasInternalAccess) {
+      hasAccess = window.contourAuth.hasInternalAccess();
+      if (hasAccess && window.contourAuth.getUserData) {
+        userData = window.contourAuth.getUserData();
+      }
+    }
     
     if (hasAccess && accessEl.value === "internal") {
       body.classList.add("internal-mode");
       if (sub) {
-        const userData = window.contourAuth.getUserData();
-        sub.textContent = `Внутренний доступ: АКТИВЕН (${userData ? userData.username : ""})`;
+        const displayName = userData?.username || (userData?.email ? userData.email.split('@')[0] : "");
+        sub.textContent = `Внутренний доступ: АКТИВЕН${displayName ? ` (${displayName})` : ""}`;
         sub.style.color = "#5ac8fa";
       }
       if (accessSelect) {
@@ -162,6 +199,9 @@
         accessSelect.style.background = "";
       }
     }
+    
+    // Обновляем кнопки авторизации после изменения доступа
+    await updateAuthButtons();
   }
 
   function norm(s){
@@ -415,6 +455,9 @@
 
   // Обработка изменения уровня доступа
   accessEl.addEventListener("change", async () => {
+    // Обновляем UI доступа
+    await updateInternalAccessUI();
+    
     if (accessEl.value === "internal") {
       const hasAccess = await hasInternalAccess();
       if (!hasAccess) {
