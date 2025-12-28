@@ -115,23 +115,36 @@
               
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Как возникает</div>
+                  <div class="block-title">Внешний вид</div>
                 </div>
-                <div class="block-body">${(threat.known || "—").replace(/\n/g, "<br>")}</div>
+                <div class="block-body">${(threat.appearance || "—").replace(/\n/g, "<br>")}</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Почему приводит к гибели</div>
+                  <div class="block-title">Триггер появления</div>
                 </div>
-                <div class="block-body">${(threat.causes || "—").replace(/\n/g, "<br>")}</div>
+                <div class="block-body">${(threat.trigger || "—").replace(/\n/g, "<br>")}</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
-                  <div class="block-title">Почему избежать почти невозможно</div>
+                  <div class="block-title">Механика охоты</div>
                 </div>
-                <div class="block-body">${(threat.notHelps || "—").replace(/\n/g, "<br>")}</div>
+                <div class="block-body">${(threat.mechanics || "—").replace(/\n/g, "<br>")}</div>
+              </div>
+
+              <div class="block threat-block">
+                <div class="block-head">
+                  <div class="block-title">Что помогает / что не помогает</div>
+                </div>
+                <div class="block-body">
+                  <strong>Что помогает:</strong><br>
+                  ${(threat.help || "—").replace(/\n/g, "<br>")}
+                  <br><br>
+                  <strong>Что не помогает:</strong><br>
+                  ${(threat.notHelp || "—").replace(/\n/g, "<br>")}
+                </div>
               </div>
             </div>
           `;

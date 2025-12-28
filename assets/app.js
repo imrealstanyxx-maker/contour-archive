@@ -148,7 +148,16 @@
   // Рендер карточки угрозы
   function renderThreatCard(item) {
     const threat = item.threat || {};
-    const shortDesc = threat.known ? threat.known.split('.').slice(0, 2).join('.') + '.' : '';
+    let shortDesc = '';
+    
+    // Короткое описание механики для каждой угрозы
+    if (item.id === 'THREAT-001') {
+      shortDesc = 'Приближается на каждую попытку перепроверить через отражение.';
+    } else if (item.id === 'THREAT-002') {
+      shortDesc = 'Привязывается к голосу, выманивает имитацией и заходит парой.';
+    } else if (item.id === 'THREAT-003') {
+      shortDesc = 'Приходит на следы насилия; кто трогает сцену — становится частью уборки.';
+    }
     
     return `
       <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="threat-card">
