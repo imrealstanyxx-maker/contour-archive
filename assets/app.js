@@ -42,7 +42,7 @@
   }
 
   function typeOk(item, t) {
-    if (t === "all") return true;
+    if (t === "all" || t === "КЕ") return true;
     return item.type === t;
   }
 
