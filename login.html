@@ -70,7 +70,17 @@
         });
       }
 
-      if (!window.CONTOUR_CONFIG || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
+      // Проверка конфигурации Supabase (опционально)
+      if (!window.CONTOUR_CONFIG) {
+        // Ждём загрузки config.js
+        let configAttempts = 0;
+        while (!window.CONTOUR_CONFIG && configAttempts < 50) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          configAttempts++;
+        }
+      }
+
+      if (!window.CONTOUR_CONFIG || !window.CONTOUR_CONFIG.SUPABASE_URL || window.CONTOUR_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE') {
         document.getElementById("login-form").innerHTML = `
           <div class="note" style="color: #ef4444;">
             Supabase не настроен. Пожалуйста, настройте assets/config.js с вашими данными из Supabase.
