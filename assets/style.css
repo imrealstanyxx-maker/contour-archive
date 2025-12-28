@@ -1364,6 +1364,110 @@ html {
   text-align: center;
 }
 
+/* Tooltips для настроек */
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+
+[data-tooltip]:hover::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 280px;
+  white-space: normal;
+  z-index: 10001;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+[data-tooltip]:hover::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(255, 255, 255, 0.2);
+  z-index: 10002;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Для элементов внутри label */
+.settings-checkbox [data-tooltip]:hover::before,
+.settings-radio-item [data-tooltip]:hover::before {
+  left: 0;
+  transform: translateX(0);
+}
+
+.settings-checkbox [data-tooltip]:hover::after,
+.settings-radio-item [data-tooltip]:hover::after {
+  left: 12px;
+  transform: translateX(0);
+}
+
+/* Для слайдера */
+.settings-slider[data-tooltip]:hover::before {
+  bottom: auto;
+  top: 100%;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.settings-slider[data-tooltip]:hover::after {
+  bottom: auto;
+  top: 100%;
+  margin-top: 2px;
+  margin-bottom: 0;
+  border-top: none;
+  border-bottom: 6px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Для меток слайдера */
+.settings-slider-labels span[data-tooltip]:hover::before {
+  bottom: auto;
+  top: 100%;
+  margin-top: 8px;
+  white-space: normal;
+  min-width: 200px;
+}
+
+.settings-slider-labels span[data-tooltip]:hover::after {
+  bottom: auto;
+  top: 100%;
+  margin-top: 2px;
+  border-top: none;
+  border-bottom: 6px solid rgba(255, 255, 255, 0.2);
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
   .settings-modal {
@@ -1377,5 +1481,10 @@ html {
   .settings-header,
   .settings-body {
     padding: 20px;
+  }
+
+  [data-tooltip]:hover::before {
+    max-width: 200px;
+    font-size: 11px;
   }
 }
