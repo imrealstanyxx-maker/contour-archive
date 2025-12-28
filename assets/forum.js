@@ -348,7 +348,7 @@ if (window.location.pathname.includes("forum.html")) {
       });
     });
 
-    renderTopics().catch(err => console.error('Error rendering topics:', err));
+    renderTopics();
   })();
 }
 
