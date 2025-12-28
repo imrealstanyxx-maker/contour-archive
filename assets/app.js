@@ -206,7 +206,8 @@
     }
 
     // Отделяем угрозы от обычных записей
-    const threats = data.filter(item => item.isThreat === true && accessOk(item, acc));
+    // Угрозы показываются всегда, независимо от фильтра доступа
+    const threats = data.filter(item => item.isThreat === true);
     const regularData = data.filter(item => !item.isThreat);
 
     // Фильтруем обычные данные строго по уровню доступа
