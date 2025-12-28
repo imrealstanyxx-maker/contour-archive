@@ -132,18 +132,12 @@
 
     // Фильтруем данные строго по уровню доступа
     const filtered = data.filter(item => {
-      const itemAccess = item.access || "public";
-      
-      // Строгая проверка доступа
-      if (acc === "public") {
-        if (itemAccess !== "public") return false;
-      } else if (acc === "leak") {
-        if (itemAccess !== "public" && itemAccess !== "leak") return false;
-      } else if (acc === "internal") {
-        if (itemAccess !== "internal") return false;
+      // Сначала проверяем доступ через функцию accessOk
+      if (!accessOk(item, acc)) {
+        return false;
       }
       
-      // Проверяем поиск и тип
+      // Затем проверяем поиск и тип
       return matches(item, q) && typeOk(item, t);
     });
 
