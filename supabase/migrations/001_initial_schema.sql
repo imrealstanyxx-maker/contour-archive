@@ -44,6 +44,24 @@ CREATE INDEX IF NOT EXISTS idx_community_reports_user_id ON community_reports(us
 CREATE INDEX IF NOT EXISTS idx_community_reports_dossier_id ON community_reports(dossier_id);
 CREATE INDEX IF NOT EXISTS idx_community_reports_status ON community_reports(status);
 
+-- Функция для проверки админа (избегаем рекурсии)
+-- Должна быть создана ДО политик RLS
+CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+BEGIN
+  -- Прямой доступ к таблице без RLS через SECURITY DEFINER
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = user_id AND role = 'admin'
+  );
+END;
+$$;
+
 -- RLS (Row Level Security)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE license_applications ENABLE ROW LEVEL SECURITY;
