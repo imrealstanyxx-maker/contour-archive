@@ -40,23 +40,9 @@
   }
 
   async function hasInternalAccess(){
-    // Проверяем через Supabase
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-      try {
-        if (window.contourSupabase) {
-          return await window.contourSupabase.hasInternalAccess();
-        }
-      } catch (e) {
-        console.warn('Error checking internal access:', e);
-      }
-    }
-    
-    // Fallback на старую систему
     if (window.contourAuth && window.contourAuth.hasInternalAccess) {
-      const result = window.contourAuth.hasInternalAccess();
-      return result instanceof Promise ? await result : result;
+      return window.contourAuth.hasInternalAccess();
     }
-    
     return false;
   }
 
@@ -138,29 +124,14 @@
     const sub = document.querySelector(".brand .sub");
     const accessSelect = document.getElementById("access");
     
-    // Проверяем доступ через Supabase
+    // Проверяем доступ через простую систему
     let hasAccess = false;
     let userData = null;
     
-    if (window.CONTOUR_CONFIG && window.CONTOUR_CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && typeof window.supabase !== 'undefined') {
-      try {
-        if (window.contourSupabase) {
-          hasAccess = await window.contourSupabase.hasInternalAccess();
-          console.log('Internal access check result:', hasAccess);
-          if (hasAccess) {
-            userData = await window.contourSupabase.getUserData();
-            console.log('User data for internal access:', userData);
-          }
-        }
-      } catch (e) {
-        console.warn('Error checking internal access:', e);
-      }
-    } else if (window.contourAuth && window.contourAuth.hasInternalAccess) {
-      const result = window.contourAuth.hasInternalAccess();
-      hasAccess = result instanceof Promise ? await result : result;
+    if (window.contourAuth && window.contourAuth.hasInternalAccess) {
+      hasAccess = window.contourAuth.hasInternalAccess();
       if (hasAccess && window.contourAuth.getUserData) {
-        const data = window.contourAuth.getUserData();
-        userData = data instanceof Promise ? await data : data;
+        userData = window.contourAuth.getUserData();
       }
     }
     
