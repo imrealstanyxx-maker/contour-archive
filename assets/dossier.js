@@ -89,7 +89,7 @@
       if (entry.isThreat) {
         // Специальный рендер для угроз
         if (els.head) {
-          els.head.textContent = entry.title || "Без названия";
+          els.head.textContent = "ЗАСЕКРЕЧЕНО";
         }
 
         if (els.meta) {
@@ -108,43 +108,36 @@
         }
 
         if (els.blocks) {
-          const threat = entry.threat || {};
           els.blocks.innerHTML = `
             <div class="threat-section">
-              <div class="threat-warning-banner">Угроза жизни подтверждена</div>
+              <div class="threat-warning-banner">Подтверждён риск для жизни</div>
               
               <div class="block threat-block">
                 <div class="block-head">
                   <div class="block-title">Как это работает</div>
                 </div>
-                <div class="block-body">${(threat.appearance || "—").replace(/\n/g, "<br>")}</div>
+                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
                   <div class="block-title">Триггер активации</div>
                 </div>
-                <div class="block-body">${(threat.trigger || "—").replace(/\n/g, "<br>")}</div>
+                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
                   <div class="block-title">Почему это смертельно</div>
                 </div>
-                <div class="block-body">${(threat.mechanics || "—").replace(/\n/g, "<br>")}</div>
+                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
               </div>
 
               <div class="block threat-block">
                 <div class="block-head">
                   <div class="block-title">Что помогает / что не помогает</div>
                 </div>
-                <div class="block-body">
-                  <strong>Что помогает:</strong><br>
-                  ${(threat.help || "—").replace(/\n/g, "<br>")}
-                  <br><br>
-                  <strong>Что не помогает:</strong><br>
-                  ${(threat.notHelp || "—").replace(/\n/g, "<br>")}
-                </div>
+                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
               </div>
             </div>
           `;
