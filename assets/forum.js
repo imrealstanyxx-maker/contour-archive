@@ -204,12 +204,7 @@ if (window.location.pathname.includes("forum.html")) {
         return;
       }
 
-      let userData = null;
-      if (window.contourSupabase) {
-        userData = await window.contourSupabase.getUserData();
-      } else if (window.contourAuth) {
-        userData = window.contourAuth.getUserData();
-      }
+      const userData = window.contourAuth ? window.contourAuth.getUserData() : null;
       
       topicsListEl.innerHTML = topics.map(topic => {
         const date = new Date(topic.createdAt).toLocaleString("ru-RU");
@@ -414,12 +409,7 @@ if (window.location.pathname.includes("topic.html")) {
         return;
       }
 
-      let userData = null;
-      if (window.contourSupabase) {
-        userData = await window.contourSupabase.getUserData();
-      } else if (window.contourAuth) {
-        userData = window.contourAuth.getUserData();
-      }
+      const userData = window.contourAuth ? window.contourAuth.getUserData() : null;
       
       repliesList.innerHTML = replies.map(reply => {
         const date = new Date(reply.createdAt).toLocaleString("ru-RU");
@@ -481,7 +471,7 @@ if (window.location.pathname.includes("topic.html")) {
       }
     });
 
-    renderReplies().catch(err => console.error('Error rendering replies:', err));
+    renderReplies();
   })();
 }
 
