@@ -10,6 +10,15 @@
   const toggleThreatsBtn = document.getElementById("toggle-threats");
   const closeThreatsBtn = document.getElementById("close-threats");
   
+  // Новые элементы для фильтров
+  const filterResultsPanel = document.getElementById("filter-results-panel");
+  const resultsCountEl = document.getElementById("results-count");
+  const activeFiltersEl = document.getElementById("active-filters");
+  const resetFiltersBtn = document.getElementById("reset-filters-btn");
+  const lockedMaterialsPanel = document.getElementById("locked-materials-panel");
+  const lockedCountEl = document.getElementById("locked-count");
+  const terminalIndicatorEl = document.getElementById("terminal-indicator");
+  
   // Элементы секций
   const sectionKes = document.getElementById("section-kes");
   const sectionKem = document.getElementById("section-kem");
@@ -20,6 +29,9 @@
   const listKem = document.getElementById("list-kem");
   const listKef = document.getElementById("list-kef");
   const listThreats = document.getElementById("list-threats");
+  
+  // Состояние фильтров по тегам
+  let activeTags = new Set();
 
   // Данные
   const data = Array.isArray(window.CONTOUR_DATA) ? window.CONTOUR_DATA : [];
@@ -48,6 +60,96 @@
   function typeOk(item, t) {
     if (t === "all" || t === "КЕ") return true;
     return item.type === t;
+  }
+
+  function tagsOk(item, activeTagsSet) {
+    if (activeTagsSet.size === 0) return true;
+    const itemTags = (item.tags || []).map(norm);
+    return Array.from(activeTagsSet).some(tag => itemTags.includes(norm(tag)));
+  }
+
+  // Сохранение состояния в URL и sessionStorage
+  function saveState() {
+    try {
+      const q = qEl ? qEl.value : "";
+      const type = typeEl ? typeEl.value : "all";
+      const access = accessEl ? accessEl.value : "public";
+      const tags = Array.from(activeTags);
+      
+      const state = {
+        q: q,
+        type: type,
+        access: access,
+        tags: tags,
+        scrollY: window.scrollY
+      };
+      sessionStorage.setItem('contour_archive_state', JSON.stringify(state));
+      
+      // Сохранение в URL через query params
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (type && type !== 'all' && type !== 'КЕ') params.set('type', type);
+      if (access && access !== 'public') params.set('access', access);
+      if (tags.length > 0) params.set('tags', tags.join(','));
+      
+      const newUrl = params.toString() 
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname;
+      
+      // Обновляем URL без перезагрузки
+      window.history.replaceState({}, '', newUrl);
+    } catch (e) {
+      // Игнорируем ошибки
+    }
+  }
+
+  // Восстановление состояния из URL или sessionStorage
+  function restoreState() {
+    try {
+      // Сначала пробуем восстановить из URL
+      const params = new URLSearchParams(window.location.search);
+      const urlQ = params.get('q');
+      const urlType = params.get('type');
+      const urlAccess = params.get('access');
+      const urlTags = params.get('tags');
+      
+      if (urlQ !== null || urlType !== null || urlAccess !== null || urlTags !== null) {
+        // Восстанавливаем из URL
+        if (qEl && urlQ !== null) qEl.value = urlQ;
+        if (typeEl && urlType !== null) typeEl.value = urlType;
+        if (accessEl && urlAccess !== null) accessEl.value = urlAccess;
+        if (urlTags) {
+          activeTags = new Set(urlTags.split(',').filter(t => t));
+        }
+      } else {
+        // Восстанавливаем из sessionStorage
+        const saved = sessionStorage.getItem('contour_archive_state');
+        if (saved) {
+          const state = JSON.parse(saved);
+          if (qEl && state.q) qEl.value = state.q;
+          if (typeEl && state.type) typeEl.value = state.type;
+          if (accessEl && state.access) accessEl.value = state.access;
+          if (state.tags && Array.isArray(state.tags)) {
+            activeTags = new Set(state.tags);
+          }
+        }
+      }
+      
+      // Восстанавливаем скролл после рендера
+      setTimeout(() => {
+        try {
+          const saved = sessionStorage.getItem('contour_archive_state');
+          if (saved) {
+            const state = JSON.parse(saved);
+            if (state.scrollY) window.scrollTo(0, state.scrollY);
+          }
+        } catch (e) {
+          // Игнорируем ошибки
+        }
+      }, 100);
+    } catch (e) {
+      // Игнорируем ошибки
+    }
   }
 
   // Определение категории по типу или id
@@ -116,7 +218,6 @@
   function renderStats(items) {
     if (!statsEl) return;
 
-    const settings = window.getContourSettings ? window.getContourSettings() : {};
     const total = items.length;
     const active = items.filter(x => (x.status || "").toUpperCase() === "ACTIVE").length;
     const unknown = items.filter(x => (x.status || "").toUpperCase() === "UNKNOWN").length;
@@ -125,89 +226,103 @@
       norm(x.location).includes("санкт") ||
       (x.tags || []).some(t => norm(t) === "спб")
     ).length;
+    
+    // Подсчитываем заблокированные контейнеры
+    const lockedCount = (data || []).filter(item => 
+      !item.isThreat && item.locked === true
+    ).length;
 
-    // Применяем настройки к статистике
-    let displayTotal = total;
-    let displayActive = active;
-    let displayUnknown = unknown;
-    let displaySpb = spb;
-
-    // Режим "Консервативный" - скрываем часть статистики
-    if (settings.interpretationMode === 'conservative') {
-      // Не меняем числа, но они уже отфильтрованы
-    }
-
-    // Режим "Допущения" - может показывать дополнительные данные
-    if (settings.interpretationMode === 'assumptions' && settings.showUnconfirmed) {
-      // Может показывать больше unknown
-    }
-
-    // Сглаживать расхождения - скрываем unknown из статистики
-    if (settings.smoothDiscrepancies) {
-      displayUnknown = 0; // Не показываем unknown в статистике
-    }
-
-    // Поведение при несоответствиях - влияет на общее количество
-    if (settings.mismatchBehavior === 'remove') {
-      // Числа уже отфильтрованы
-    }
-
-    let statsHTML = `
+    const statsHTML = `
       <div class="stat">
         <div class="k">Всего единиц</div>
-        <div class="v">${displayTotal}</div>
+        <div class="v">${total}</div>
       </div>
       <div class="stat">
         <div class="k">Активных</div>
-        <div class="v">${displayActive}</div>
+        <div class="v">${active}</div>
       </div>
-    `;
-
-    // Показываем unknown только если не сглаживаем расхождения
-    if (!settings.smoothDiscrepancies || displayUnknown > 0) {
-      statsHTML += `
-        <div class="stat">
-          <div class="k">Неизвестных</div>
-          <div class="v">${displayUnknown}</div>
-        </div>
-      `;
-    }
-
-    statsHTML += `
+      <div class="stat">
+        <div class="k">Неизвестных</div>
+        <div class="v">${unknown}</div>
+      </div>
       <div class="stat">
         <div class="k">Связано с СПб</div>
-        <div class="v">${displaySpb}</div>
+        <div class="v">${spb}</div>
+      </div>
+      <div class="stat">
+        <div class="k">Скрыто контейнеров</div>
+        <div class="v">${lockedCount > 0 ? lockedCount : '—'}</div>
       </div>
     `;
-
-    // Режим "Несогласованный" - добавляем предупреждение
-    if (settings.interpretationMode === 'inconsistent') {
-      statsHTML += `
-        <div class="stat" style="color: rgba(239, 68, 68, 0.8); margin-top: 8px; font-size: 12px;">
-          <div class="k">⚠ Нестабильная выдача</div>
-        </div>
-      `;
-    }
 
     statsEl.innerHTML = statsHTML;
   }
 
   // Рендер карточки угрозы
   function renderThreatCard(item) {
-    return `
-      <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="threat-card">
-        <div class="threat-warning">Подтверждён риск для жизни</div>
-        <div class="threat-id">${item.id}</div>
-        <div class="threat-title">ЗАСЕКРЕЧЕНО</div>
-        <div class="threat-desc">ЗАСЕКРЕЧЕНО</div>
-      </a>
-    `;
+    // Для THREAT-002 показываем информацию, для остальных - ЗАСЕКРЕЧЕНО
+    if (item.id === "THREAT-002") {
+      const title = item.title || "Сменщик";
+      const summary = item.summary || "";
+      const status = item.status || "";
+      return `
+        <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="threat-card">
+          <div class="threat-warning">Подтверждён риск для жизни</div>
+          <div class="threat-id">${item.id}</div>
+          <div class="threat-title">${title}</div>
+          ${status ? `<div style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-bottom: 8px;">${status}</div>` : ""}
+          <div class="threat-desc">${summary}</div>
+        </a>
+      `;
+    } else {
+      return `
+        <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="threat-card">
+          <div class="threat-warning">Подтверждён риск для жизни</div>
+          <div class="threat-id">${item.id}</div>
+          <div class="threat-title">ЗАСЕКРЕЧЕНО</div>
+          <div class="threat-desc">ЗАСЕКРЕЧЕНО</div>
+        </a>
+      `;
+    }
   }
 
+  // Рендер плейсхолдера "ЗАШИФРОВАНО"
+  function renderPlaceholderCard() {
+    return `
+      <div class="card" style="opacity: 0.6; cursor: default; pointer-events: none;">
+        <div class="row">
+          <div style="color: rgba(255, 255, 255, 0.4);">—</div>
+          <div style="color: rgba(255, 255, 255, 0.4);">—</div>
+          <span class="badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: rgba(239, 68, 68, 0.6);">ЗАШИФРОВАНО</span>
+        </div>
+        <div class="title" style="color: rgba(255, 255, 255, 0.5);">Контейнер изъят</div>
+        <div class="small" style="color: rgba(255, 255, 255, 0.4);">Ожидается повторная компиляция.</div>
+      </div>
+    `;
+  }
+  
+  // Рендер карточек с плейсхолдерами
+  function renderCardsWithPlaceholders(items, minCount) {
+    const cards = items.map(renderCard);
+    const placeholderCount = Math.max(0, Math.min(4, minCount - items.length));
+    for (let i = 0; i < placeholderCount; i++) {
+      cards.push(renderPlaceholderCard());
+    }
+    return cards.join("");
+  }
+  
   // Рендер одной карточки
   function renderCard(item) {
-    const settings = window.getContourSettings ? window.getContourSettings() : {};
-    const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
+    const itemTags = item.tags || [];
+    const tags = itemTags.map(t => {
+      const isActive = activeTags.has(t);
+      // Экранируем для HTML и для использования в JavaScript
+      // Экранируем для HTML
+      const htmlEscapedTag = t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      // Экранируем для использования в onclick
+      const jsEscapedTag = t.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+      return `<span class="tag ${isActive ? 'active' : ''}" data-tag="${htmlEscapedTag}" onclick="event.stopPropagation(); if(window.toggleTag)window.toggleTag('${jsEscapedTag}');">${htmlEscapedTag}</span>`;
+    }).join("");
     const itemAccess = item.access || "public";
     let accessBadge = "";
     let dataAccess = "";
@@ -222,97 +337,14 @@
       dataAccess = 'data-access="public"';
     }
 
-    // Применяем настройки интерпретации
-    let title = item.title || "";
-    let summary = item.summary || "";
-    let additionalNotes = "";
-    let statusDisplay = statusBadge(item.status);
-
-    // Режим "Допущения" - добавляем пометки
-    if (settings.interpretationMode === 'assumptions') {
-      // 40% вероятность пометки для записей с неполными данными
-      if ((!item.summary || item.summary.length < 30) && Math.random() > 0.6) {
-        additionalNotes += '<div class="small" style="color: rgba(255,255,255,0.5); margin-top: 4px; font-style: italic;">[неподтверждённые данные]</div>';
-      }
-      // Для UNKNOWN всегда добавляем пометку
-      if (item.status === 'UNKNOWN' && Math.random() > 0.3) {
-        additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.8); margin-top: 4px;">[требует проверки]</div>';
-      }
-    }
-
-    // Режим "Несогласованный" - добавляем противоречия
-    if (settings.interpretationMode === 'inconsistent') {
-      // 30% вероятность противоречия
-      if (Math.random() > 0.7) {
-        title = `<span style="text-decoration: line-through; opacity: 0.5;">${title}</span> <span style="color: rgba(239, 68, 68, 0.8);">[противоречие]</span>`;
-      }
-      // Иногда показываем зачёркнутый summary
-      if (summary && Math.random() > 0.8) {
-        summary = `<span style="text-decoration: line-through; opacity: 0.4;">${summary}</span>`;
-      }
-    }
-
-    // Показывать неподтверждённые элементы
-    if (settings.showUnconfirmed) {
-      if (item.status === 'UNKNOWN') {
-        additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.8); margin-top: 4px;">⚠ Неподтверждённый элемент</div>';
-      }
-      // Также помечаем записи без полных данных
-      if ((!item.summary || item.summary.length < 20) && item.status !== 'UNKNOWN') {
-        additionalNotes += '<div class="small" style="color: rgba(245, 158, 11, 0.6); margin-top: 4px;">[неполные данные]</div>';
-      }
-    }
-
-    // Скрывать повторяющиеся формулировки
-    if (settings.hideRepetitions) {
-      // Скрываем слишком короткие описания
-      if (summary && summary.length < 25) {
-        summary = "";
-      }
-      // Скрываем повторяющиеся теги (если есть)
-      if (tags && tags.split('</span>').length > 3) {
-        // Оставляем только первые 3 тега
-        const tagArray = (item.tags || []).slice(0, 3);
-        tags = tagArray.map(t => `<span class="tag">${t}</span>`).join("");
-      }
-    }
-
-    // Сглаживать расхождения - убираем пометки о несоответствиях
-    if (settings.smoothDiscrepancies) {
-      // Не показываем статус UNKNOWN как проблему - меняем на обычный badge
-      if (item.status === 'UNKNOWN') {
-        statusDisplay = '<span class="badge">UNKNOWN</span>';
-      }
-      // Убираем предупреждения о неполных данных
-      if (additionalNotes.includes('[неполные данные]')) {
-        additionalNotes = additionalNotes.replace(/\[неполные данные\]/g, '');
-      }
-    }
-
-    // Поведение при несоответствиях - помечать
-    if (settings.mismatchBehavior === 'mark') {
-      // Помечаем записи с несоответствиями
-      const hasMismatch = (item.status === 'ACTIVE' && !item.summary) || 
-                         (item.status === 'UNKNOWN' && !item.title) ||
-                         (item.type && !item.location && !item.tags?.length);
-      if (hasMismatch) {
-        additionalNotes += '<div class="small" style="color: rgba(239, 68, 68, 0.8); margin-top: 4px;">[несоответствие данных]</div>';
-      }
-    }
-
-    // Уровень детализации влияет на отображение
-    const detailLevel = settings.detailLevel !== undefined ? settings.detailLevel : 1;
-    if (detailLevel === 0) {
-      // Сводка - скрываем часть информации
-      if (tags) tags = ""; // Скрываем теги
-      if (item.location) {
-        // Скрываем локацию или показываем сокращённо
-        item.location = item.location.length > 20 ? item.location.substring(0, 20) + '...' : item.location;
-      }
-    }
+    const title = item.title || "";
+    const summary = item.summary || "";
+    
+    // Сохраняем состояние перед переходом
+    const href = `dossier.html?id=${encodeURIComponent(item.id)}`;
     
     return `
-      <a href="dossier.html?id=${encodeURIComponent(item.id)}" class="card" ${dataAccess}>
+      <a href="${href}" class="card" ${dataAccess} onclick="window.saveArchiveState && window.saveArchiveState();">
         <div class="row">
           <div>${item.id}</div>
           <div>${item.type}</div>
@@ -323,10 +355,23 @@
         <div class="small">${summary}</div>
         ${tags ? `<div class="tags">${tags}</div>` : ""}
         ${item.location ? `<div class="small" style="margin-top: 8px; color: rgba(255,255,255,0.6);">📍 ${item.location}</div>` : ""}
-        ${additionalNotes}
       </a>
     `;
   }
+  
+  // Переключение тега
+  window.toggleTag = function(tag) {
+    if (activeTags.has(tag)) {
+      activeTags.delete(tag);
+    } else {
+      activeTags.add(tag);
+    }
+    saveState();
+    renderList();
+  };
+  
+  // Сохранение состояния перед переходом
+  window.saveArchiveState = saveState;
 
   function renderList() {
     const q = qEl ? qEl.value.trim() : "";
@@ -351,9 +396,6 @@
     const threats = data.filter(item => item.isThreat === true);
     const regularData = data.filter(item => !item.isThreat);
 
-    // Получаем настройки
-    const settings = window.getContourSettings ? window.getContourSettings() : {};
-    
     // Фильтруем обычные данные строго по уровню доступа и проверяем locked
     let filtered = regularData.filter(item => {
       // Показываем только незаблокированные записи (KES-001 и KEM-002)
@@ -366,59 +408,22 @@
         return false;
       }
       
-      // Затем проверяем поиск и тип
-      return matches(item, q) && typeOk(item, t);
+      // Затем проверяем поиск, тип и теги
+      return matches(item, q) && typeOk(item, t) && tagsOk(item, activeTags);
     });
     
     // Проверяем, есть ли заблокированные записи, которые соответствуют фильтрам
-    const hasLockedItems = regularData.some(item => {
+    const lockedItems = regularData.filter(item => {
       if (item.locked !== true) return false;
       if (!accessOk(item, acc)) return false;
-      return matches(item, q) && typeOk(item, t);
+      return matches(item, q) && typeOk(item, t) && tagsOk(item, activeTags);
     });
 
-    // Применяем режим интерпретации
-    if (settings.interpretationMode === 'conservative') {
-      // Консервативный: меньше записей, только проверенные
-      filtered = filtered.filter(item => {
-        // Показываем только записи с полными данными и известным статусом
-        const hasFullData = item.title && item.summary && item.summary.length > 20;
-        const hasKnownStatus = item.status && item.status !== 'UNKNOWN';
-        const hasLocation = item.location || item.tags?.length > 0;
-        return hasFullData && hasKnownStatus && hasLocation;
-      });
-    } else if (settings.interpretationMode === 'assumptions') {
-      // Допущения: показываем больше записей, включая неполные
-      // Не фильтруем дополнительно, но добавим пометки при рендеринге
-    } else if (settings.interpretationMode === 'inconsistent') {
-      // Несогласованный: показываем все, включая противоречивые
-      // Не фильтруем, но добавим противоречия при рендеринге
-    }
-
-    // Применяем поведение при несоответствиях
-    if (settings.mismatchBehavior === 'remove') {
-      // Удаляем записи с несоответствиями
-      filtered = filtered.filter(item => {
-        // Проверяем на несоответствия
-        if (item.status === 'ACTIVE' && !item.summary) return false;
-        if (item.status === 'UNKNOWN' && !item.title) return false;
-        if (item.type && !item.location && !item.tags?.length) return false;
-        return true;
-      });
-    } else if (settings.mismatchBehavior === 'mark') {
-      // Помечаем записи с несоответствиями (добавим пометки при рендеринге)
-    }
-
-    // Применяем экспериментальные параметры
-    if (settings.showOutsideCompilation) {
-      // Показываем материалы вне компиляции - не фильтруем по типу строго
-    }
-
-    if (settings.allowDelayed) {
-      // Разрешаем отложенные данные - показываем записи даже с неполными данными
-      // Не фильтруем дополнительно
-    }
-
+    // Обновляем индикаторы результатов и фильтров
+    updateFilterIndicators(filtered.length, q, t, acc);
+    updateLockedMaterials(lockedItems.length);
+    updateTerminalIndicator();
+    
     renderStats(filtered);
 
     // Обновляем список угроз (но не показываем автоматически)
@@ -474,15 +479,15 @@
       showKef = kefItems.length > 0;
     }
 
-    // Рендерим секции
+    // Рендерим секции с плейсхолдерами
     if (listKes) {
-      listKes.innerHTML = kesItems.map(renderCard).join("");
+      listKes.innerHTML = renderCardsWithPlaceholders(kesItems, 2);
     }
     if (listKem) {
-      listKem.innerHTML = kemItems.map(renderCard).join("");
+      listKem.innerHTML = renderCardsWithPlaceholders(kemItems, 2);
     }
     if (listKef) {
-      listKef.innerHTML = kefItems.map(renderCard).join("");
+      listKef.innerHTML = renderCardsWithPlaceholders(kefItems, 2);
     }
 
     // Показываем/скрываем секции
@@ -501,6 +506,139 @@
     if (sectionEmpty) {
       sectionEmpty.style.display = hasAnyItems ? "none" : "block";
     }
+    
+    // Обновляем пустые секции на "Материалы изъяты"
+    updateEmptySections(showKes, showKem, showKef, kesItems.length, kemItems.length, kefItems.length);
+    
+    saveState();
+  }
+  
+  // Обновление индикаторов фильтров
+  function updateFilterIndicators(count, q, t, acc) {
+    const hasActiveFilters = q || (t !== "all" && t !== "КЕ") || acc !== "public" || activeTags.size > 0;
+    
+    if (filterResultsPanel) {
+      filterResultsPanel.style.display = hasActiveFilters ? "block" : "none";
+    }
+    
+    if (resultsCountEl) {
+      if (hasActiveFilters) {
+        resultsCountEl.textContent = `Найдено записей: ${count}`;
+      } else {
+        resultsCountEl.textContent = "";
+      }
+    }
+    
+    if (activeFiltersEl && hasActiveFilters) {
+      const chips = [];
+      
+      if (q) {
+        chips.push(createFilterChip("Поиск", q, "search", q));
+      }
+      
+      if (t !== "all" && t !== "КЕ") {
+        const typeLabel = t === "КЕ-С" ? "КЕ-С" : t === "КЕ-М" ? "КЕ-М" : t === "КЕ-Ф" ? "КЕ-Ф" : t;
+        chips.push(createFilterChip("Тип", typeLabel, "type", t));
+      }
+      
+      if (acc !== "public") {
+        const accessLabel = acc === "leak" ? "Утечка" : acc === "internal" ? "Внутренний" : acc;
+        chips.push(createFilterChip("Доступ", accessLabel, "access", acc));
+      }
+      
+      Array.from(activeTags).forEach(tag => {
+        chips.push(createFilterChip("Тег", tag, "tag", tag));
+      });
+      
+      activeFiltersEl.innerHTML = chips.join("");
+      
+      // Добавляем обработчики на кнопки удаления
+      activeFiltersEl.querySelectorAll('.filter-chip-remove').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const chip = this.closest('.filter-chip');
+          if (chip) {
+            const filterType = chip.getAttribute('data-filter-type');
+            const filterValue = chip.getAttribute('data-filter-value');
+            
+            if (filterType === "search") {
+              if (qEl) qEl.value = "";
+            } else if (filterType === "type") {
+              if (typeEl) typeEl.value = "all";
+            } else if (filterType === "access") {
+              if (accessEl) accessEl.value = "public";
+            } else if (filterType === "tag") {
+              activeTags.delete(filterValue);
+            }
+            
+            saveState();
+            renderList();
+          }
+        });
+      });
+    }
+  }
+  
+  function createFilterChip(label, value, filterType, filterValue) {
+    const escapedValue = (value || "").toString().replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapedFilterType = (filterType || "").replace(/"/g, '&quot;');
+    const escapedFilterValue = (filterValue || "").toString().replace(/"/g, '&quot;');
+    return `
+      <div class="filter-chip" data-filter-type="${escapedFilterType}" data-filter-value="${escapedFilterValue}">
+        <span>${label}: ${escapedValue}</span>
+        <span class="filter-chip-remove">×</span>
+      </div>
+    `;
+  }
+  
+  // Обновление блока заблокированных материалов
+  function updateLockedMaterials(count) {
+    if (lockedMaterialsPanel) {
+      lockedMaterialsPanel.style.display = count > 0 ? "block" : "none";
+      if (lockedCountEl && count > 0) {
+        lockedCountEl.textContent = `(изъято: ${count})`;
+      }
+    }
+  }
+  
+  // Обновление индикатора терминала
+  function updateTerminalIndicator() {
+    if (!terminalIndicatorEl) return;
+    
+    try {
+      const level = localStorage.getItem('contour_terminal_level');
+      const newFragments = localStorage.getItem('contour_terminal_new_fragments');
+      
+      if (level || newFragments) {
+        let text = "";
+        if (level) {
+          const levelNum = parseInt(level, 10) || 0;
+          text = `Сеанс ввода: уровень ${levelNum}`;
+        }
+        if (newFragments) {
+          const count = parseInt(newFragments, 10) || 0;
+          if (count > 0) {
+            text += (text ? ". " : "") + `Новые фрагменты: ${count}`;
+          }
+        }
+        if (text) {
+          terminalIndicatorEl.textContent = text;
+          terminalIndicatorEl.style.display = "block";
+        } else {
+          terminalIndicatorEl.style.display = "none";
+        }
+      } else {
+        terminalIndicatorEl.style.display = "none";
+      }
+    } catch (e) {
+      terminalIndicatorEl.style.display = "none";
+    }
+  }
+  
+  // Обновление пустых секций
+  function updateEmptySections(showKes, showKem, showKef, kesCount, kemCount, kefCount) {
+    // Логика пустых секций обрабатывается выше - секции скрываются, если нет элементов
+    // Этот блок можно использовать для дополнительной логики в будущем
   }
 
   // Отключение внутреннего доступа
@@ -709,46 +847,120 @@
     }
   }
 
+  // Сброс всех фильтров
+  function resetAllFilters() {
+    if (qEl) qEl.value = "";
+    if (typeEl) typeEl.value = "all";
+    if (accessEl) accessEl.value = "public";
+    activeTags.clear();
+    // Очищаем URL
+    window.history.replaceState({}, '', window.location.pathname);
+    saveState();
+    renderList();
+  }
+  
   // Инициализация
   function init() {
-    // Обработчики событий
-    if (qEl) {
-      qEl.addEventListener("input", renderList);
-    }
-    if (typeEl) {
-      typeEl.addEventListener("change", renderList);
+    try {
+      // Восстанавливаем состояние
+      restoreState();
       
-      // Обработчик изменения настроек
-      window.addEventListener('contourSettingsChanged', () => {
-        renderList();
-      });
-    }
-    if (accessEl) {
-      accessEl.addEventListener("change", () => {
-        updateAccessTheme();
-        renderList();
-        // Обновляем UI внутреннего доступа после смены темы
-        updateInternalAccessUI();
-      });
-    }
-
-    // Обработчики событий для кнопок угроз
-    if (toggleThreatsBtn) {
-      toggleThreatsBtn.addEventListener("click", toggleThreatsSection);
-    }
-    
-    if (closeThreatsBtn) {
-      closeThreatsBtn.addEventListener("click", () => {
-        if (sectionThreats) {
-          sectionThreats.style.display = "none";
+      // Дебаунс для поиска
+      let searchTimeout = null;
+      if (qEl) {
+        qEl.addEventListener("input", () => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            saveState();
+            renderList();
+          }, 300); // 300ms дебаунс
+        });
+      }
+      
+      // Горячие клавиши
+      document.addEventListener('keydown', (e) => {
+        // "/" фокусирует поиск (если не в input/textarea)
+        if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+          e.preventDefault();
+          if (qEl) {
+            qEl.focus();
+          }
+        }
+        // "Esc" закрывает модальные окна/баннеры
+        if (e.key === 'Escape') {
+          // Закрываем баннер внутреннего доступа если открыт
+          const banner = document.getElementById("internal-access-banner");
+          if (banner && banner.style.display !== 'none') {
+            const closeBtn = document.getElementById("close-banner");
+            if (closeBtn) closeBtn.click();
+          }
+          // Закрываем секцию угроз если открыта
+          if (sectionThreats && sectionThreats.style.display === 'block') {
+            const closeThreats = document.getElementById("close-threats");
+            if (closeThreats) closeThreats.click();
+          }
         }
       });
-    }
+      if (typeEl) {
+        typeEl.addEventListener("change", () => {
+          saveState();
+          renderList();
+        });
+      }
+      if (accessEl) {
+        accessEl.addEventListener("change", () => {
+          updateAccessTheme();
+          saveState();
+          renderList();
+          // Обновляем UI внутреннего доступа после смены темы
+          updateInternalAccessUI();
+        });
+      }
+      
+      // Кнопка сброса фильтров
+      if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener("click", resetAllFilters);
+      }
 
-    // Первичная загрузка
-    updateAccessTheme();
-    updateInternalAccessUI();
-    renderList();
+      // Обработчики событий для кнопок угроз
+      if (toggleThreatsBtn) {
+        toggleThreatsBtn.addEventListener("click", toggleThreatsSection);
+      }
+      
+      if (closeThreatsBtn) {
+        closeThreatsBtn.addEventListener("click", () => {
+          if (sectionThreats) {
+            sectionThreats.style.display = "none";
+          }
+        });
+      }
+
+      // Первичная загрузка
+      updateAccessTheme();
+      updateInternalAccessUI();
+      renderList();
+    } catch (error) {
+      console.error('Error in init:', error);
+      showError('Сбой компиляции. Данные недоступны.', error.message);
+    }
+  }
+  
+  // Показ ошибки
+  function showError(message, details) {
+    const errorHTML = `
+      <section class="panel" style="border-left: 3px solid rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.05); margin-top: 20px;">
+        <div class="panel-title" style="color: rgba(239, 68, 68, 0.9);">Сбой компиляции</div>
+        <div class="panel-body">
+          <div class="note" style="color: rgba(255, 255, 255, 0.8);">${message}</div>
+          ${details ? `<div class="small" style="margin-top: 8px; color: rgba(255, 255, 255, 0.5); font-family: monospace; font-size: 11px;">${details}</div>` : ""}
+        </div>
+      </section>
+    `;
+    
+    const wrap = document.querySelector('.wrap');
+    if (wrap) {
+      wrap.insertAdjacentHTML('afterbegin', errorHTML);
+    }
   }
 
   // Запуск

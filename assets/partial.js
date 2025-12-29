@@ -112,11 +112,7 @@
       availableFragments = [...availableFragments, ...basicFragments.slice(0, 8)];
     }
     
-<<<<<<< Current (Your changes)
-    // Фильтруем фрагменты, связанные с KES-001
-=======
     // Фильтруем фрагменты, связанные с существующими объектами
->>>>>>> Incoming (Background Agent changes)
     const allowedFragments = availableFragments.filter(f => {
       return f.includes('КЕ-С/001') || f.includes('Лицо №0') ||
              f.includes('Картотека-7');
@@ -148,11 +144,50 @@
     }
   }
 
+  // Обновление индикатора терминала
+  function updateTerminalIndicator() {
+    const indicatorEl = document.getElementById("terminal-indicator-partial");
+    if (!indicatorEl) return;
+    
+    try {
+      const level = localStorage.getItem('contour_terminal_level');
+      const newFragments = localStorage.getItem('contour_terminal_new_fragments');
+      
+      if (level || newFragments) {
+        let text = "";
+        if (level) {
+          const levelNum = parseInt(level, 10) || 0;
+          text = `Сеанс ввода: уровень ${levelNum}`;
+        }
+        if (newFragments) {
+          const count = parseInt(newFragments, 10) || 0;
+          if (count > 0) {
+            text += (text ? ". " : "") + `Новые фрагменты: ${count}`;
+          }
+        }
+        if (text) {
+          indicatorEl.textContent = text;
+          indicatorEl.style.display = "block";
+        } else {
+          indicatorEl.style.display = "none";
+        }
+      } else {
+        indicatorEl.style.display = "none";
+      }
+    } catch (e) {
+      indicatorEl.style.display = "none";
+    }
+  }
+
   // Запускаем при загрузке страницы
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", renderPartialList);
+    document.addEventListener("DOMContentLoaded", () => {
+      renderPartialList();
+      updateTerminalIndicator();
+    });
   } else {
     renderPartialList();
+    updateTerminalIndicator();
   }
 })();
 

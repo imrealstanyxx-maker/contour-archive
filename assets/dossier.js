@@ -19,9 +19,15 @@
   function showError(message) {
     const els = getElements();
     if (els.head) els.head.textContent = "Ошибка";
-    if (els.meta) els.meta.innerHTML = `<div class="note" style="color: #ef4444;">${message}</div>`;
+    if (els.meta) {
+      els.meta.innerHTML = `<div class="note" style="color: rgba(239, 68, 68, 0.9);">
+        <p>${message}</p>
+        <p style="margin-top: 12px;"><a href="index.html" style="color: rgba(255, 255, 255, 0.8); text-decoration: underline;">← Вернуться в архив</a></p>
+      </div>`;
+    }
     if (els.blocks) els.blocks.innerHTML = "";
     if (els.editorNote) els.editorNote.textContent = "—";
+    initDossierButtons(null);
   }
 
   function showLoading() {
@@ -65,6 +71,168 @@
     return `<span class="${cls}">${s}</span>`;
   }
 
+  // Инициализация кнопок в досье
+  function initDossierButtons(id) {
+    // Кнопка копирования ссылки
+    const copyLinkBtn = document.getElementById("copy-link-btn");
+    if (copyLinkBtn) {
+      // Удаляем старые обработчики
+      const newBtn = copyLinkBtn.cloneNode(true);
+      copyLinkBtn.parentNode.replaceChild(newBtn, copyLinkBtn);
+      
+      newBtn.addEventListener("click", () => {
+        const url = window.location.href;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(() => {
+            const originalText = newBtn.textContent;
+            newBtn.textContent = "✓ Скопировано";
+            setTimeout(() => {
+              newBtn.textContent = originalText;
+            }, 2000);
+          }).catch(() => {
+            copyTextToClipboard(url, newBtn);
+          });
+        } else {
+          copyTextToClipboard(url, newBtn);
+        }
+      });
+    }
+    
+    // Кнопка копирования ID
+    const copyIdBtn = document.getElementById("copy-id-btn");
+    if (copyIdBtn && id) {
+      // Удаляем старые обработчики
+      const newIdBtn = copyIdBtn.cloneNode(true);
+      copyIdBtn.parentNode.replaceChild(newIdBtn, copyIdBtn);
+      
+      newIdBtn.addEventListener("click", () => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(id).then(() => {
+            const originalText = newIdBtn.textContent;
+            newIdBtn.textContent = "✓ Скопировано";
+            setTimeout(() => {
+              newIdBtn.textContent = originalText;
+            }, 2000);
+          }).catch(() => {
+            copyTextToClipboard(id, newIdBtn);
+          });
+        } else {
+          copyTextToClipboard(id, newIdBtn);
+        }
+      });
+    }
+  }
+  
+  // Рендер оглавления досье
+  function renderDossierTOC(entry) {
+    const tocEl = document.getElementById("dossier-toc");
+    if (!tocEl) return;
+    
+    const sections = [];
+    
+    // Проверяем наличие материалов
+    let hasMaterials = false;
+    if (entry.materials && entry.materials.length > 0) hasMaterials = true;
+    if (entry.leakMaterials && entry.leakMaterials.length > 0) hasMaterials = true;
+    const hasInternalAccess = localStorage.getItem('contour_internal_access') === 'granted';
+    if (hasInternalAccess && entry.internalMaterials && entry.internalMaterials.length > 0) hasMaterials = true;
+    
+    if (hasMaterials) sections.push({ name: "Материалы", anchor: "materials" });
+    if (entry.dossier && entry.dossier.observe) sections.push({ name: "Примечания", anchor: "editor-note" });
+    if (hasInternalAccess && entry.internalNote) sections.push({ name: "Внутренний отчёт", anchor: "internal-note" });
+    
+    if (sections.length > 0) {
+      tocEl.style.display = "block";
+      tocEl.innerHTML = `
+        <div style="font-size: 13px; color: rgba(255, 255, 255, 0.7); margin-bottom: 8px;">Оглавление:</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${sections.map(s => `<a href="#${s.anchor}" style="color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 4px 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; font-size: 12px; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">${s.name}</a>`).join("")}
+        </div>
+      `;
+    } else {
+      tocEl.style.display = "none";
+    }
+  }
+  
+  // Рендер блока "Связано с"
+  function renderDossierRelated(entry) {
+    const relatedEl = document.getElementById("dossier-related");
+    if (!relatedEl) return;
+    
+    const related = entry.dossier && entry.dossier.related;
+    if (!related) {
+      relatedEl.style.display = "none";
+      return;
+    }
+    
+    // Парсим связанные ID из текста related (ищем паттерны КЕ-С/001, KES-001, КЕ-М/002 и т.д.)
+    const relatedIds = [];
+    const typeMap = { 'С': 'S', 'М': 'M', 'Ф': 'F' };
+    const matches = related.match(/КЕ-[СМФ]\/\d+|KE[SMF]-\d+/gi);
+    if (matches) {
+      matches.forEach(match => {
+        // Преобразуем КЕ-С/001 в KES-001
+        let normalized = match.toUpperCase();
+        const cyrillicMatch = normalized.match(/КЕ-([СМФ])\/(\d+)/);
+        if (cyrillicMatch) {
+          const type = typeMap[cyrillicMatch[1]] || cyrillicMatch[1];
+          normalized = `KE${type}-${cyrillicMatch[2]}`;
+        }
+        if (normalized && normalized.match(/^KE[SMF]-\d+$/)) {
+          relatedIds.push(normalized);
+        }
+      });
+    }
+    
+    if (relatedIds.length > 0) {
+      relatedEl.style.display = "block";
+      relatedEl.innerHTML = `
+        <div style="padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
+          <div style="font-size: 13px; color: rgba(255, 255, 255, 0.7); margin-bottom: 8px;">Связано с:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            ${relatedIds.map(id => {
+              const data = window.CONTOUR_DATA && Array.isArray(window.CONTOUR_DATA) 
+                ? window.CONTOUR_DATA.find(e => e.id === id) 
+                : null;
+              const title = data ? (data.title || id) : id;
+              return `<a href="dossier.html?id=${encodeURIComponent(id)}" style="color: rgba(90, 200, 250, 0.9); text-decoration: none; padding: 6px 12px; background: rgba(90, 200, 250, 0.1); border: 1px solid rgba(90, 200, 250, 0.2); border-radius: 4px; font-size: 12px; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(90,200,250,0.15)'" onmouseout="this.style.background='rgba(90,200,250,0.1)'">${id}: ${title}</a>`;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    } else {
+      // Если нет ID, показываем просто текст
+      relatedEl.style.display = "block";
+      relatedEl.innerHTML = `
+        <div style="padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
+          <div style="font-size: 13px; color: rgba(255, 255, 255, 0.7); margin-bottom: 8px;">Связано с:</div>
+          <div style="color: rgba(255, 255, 255, 0.8); font-size: 13px;">${related.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </div>
+      `;
+    }
+  }
+
+  // Fallback для копирования текста
+  function copyTextToClipboard(text, btn) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      const originalText = btn.textContent;
+      btn.textContent = "✓ Скопировано";
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+    document.body.removeChild(textarea);
+  }
+
   async function runDossier() {
     try {
       showLoading();
@@ -79,9 +247,21 @@
       const entry = data.find(e => e.id === id);
       
       if (!entry) {
-        showError(`Досье с ID "${id}" не найдено.`);
+        const els = getElements();
+        if (els.head) els.head.textContent = "Досье не найдено";
+        if (els.meta) {
+          els.meta.innerHTML = `<div class="note" style="color: rgba(255, 255, 255, 0.7);">
+            <p>Досье с ID "${id}" не найдено или доступ ограничен.</p>
+            <p><a href="index.html" style="color: rgba(255, 255, 255, 0.8); text-decoration: underline;">← Вернуться в архив</a></p>
+          </div>`;
+        }
+        if (els.blocks) els.blocks.innerHTML = "";
+        initDossierButtons(id);
         return;
       }
+      
+      // Инициализируем кнопки
+      initDossierButtons(id);
 
       // Проверяем, заблокирована ли запись
       if (entry.locked === true) {
@@ -94,11 +274,13 @@
             <p>Файл зашифрован.</p>
             <p>Доступ к материалам временно ограничен.</p>
             <p>Повторные запросы фиксируются.</p>
+            <p style="margin-top: 12px;"><a href="index.html" style="color: rgba(255, 255, 255, 0.8); text-decoration: underline;">← Вернуться в архив</a></p>
           </div>`;
         }
         if (els.blocks) {
           els.blocks.innerHTML = "";
         }
+        initDossierButtons(id);
         if (els.editorNote) {
           els.editorNote.textContent = "—";
         }
@@ -112,71 +294,198 @@
       
       // Проверяем, является ли это угрозой
       if (entry.isThreat) {
-        // Специальный рендер для угроз
-        if (els.head) {
-          els.head.textContent = "ЗАСЕКРЕЧЕНО";
-        }
-
-        if (els.meta) {
-          els.meta.innerHTML = `
-            <div class="kv">
-              <div class="kv-row">
-                <div class="kv-k">ID</div>
-                <div class="kv-v">${formatId(entry.id, entry.type)}</div>
-              </div>
-              <div class="kv-row">
-                <div class="kv-k">Статус</div>
-                <div class="kv-v">${statusBadge(entry.status)}</div>
-              </div>
-            </div>
-          `;
-        }
-
-        if (els.blocks) {
-          els.blocks.innerHTML = `
-            <div class="threat-section">
-              <div class="threat-warning-banner">Подтверждён риск для жизни</div>
-              
-              <div class="block threat-block">
-                <div class="block-head">
-                  <div class="block-title">Как это работает</div>
+        // Для THREAT-002 показываем досье, для остальных - ЗАСЕКРЕЧЕНО
+        if (entry.id === "THREAT-002") {
+          // Обычный рендер для THREAT-002
+          if (els.head) {
+            els.head.textContent = entry.title || "Сменщик";
+          }
+          
+          // Метаданные
+          if (els.meta) {
+            const tags = (entry.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
+            els.meta.innerHTML = `
+              <div class="kv">
+                <div class="kv-row">
+                  <div class="kv-k">ID</div>
+                  <div class="kv-v">${formatId(entry.id, entry.type)}</div>
                 </div>
-                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
-              </div>
-
-              <div class="block threat-block">
-                <div class="block-head">
-                  <div class="block-title">Триггер активации</div>
+                <div class="kv-row">
+                  <div class="kv-k">Тип</div>
+                  <div class="kv-v">${entry.type || "—"}</div>
                 </div>
-                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
-              </div>
-
-              <div class="block threat-block">
-                <div class="block-head">
-                  <div class="block-title">Почему это смертельно</div>
+                <div class="kv-row">
+                  <div class="kv-k">Статус</div>
+                  <div class="kv-v">${entry.status || "—"}</div>
                 </div>
-                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
-              </div>
-
-              <div class="block threat-block">
-                <div class="block-head">
-                  <div class="block-title">Что помогает / что не помогает</div>
+                ${entry.location ? `
+                <div class="kv-row">
+                  <div class="kv-k">Локация</div>
+                  <div class="kv-v">${entry.location}</div>
                 </div>
-                <div class="block-body">ЗАСЕКРЕЧЕНО</div>
+                ` : ""}
+                ${tags ? `
+                <div class="kv-row">
+                  <div class="kv-k">Теги</div>
+                  <div class="kv-v">
+                    <div class="tags">${tags}</div>
+                  </div>
+                </div>
+                ` : ""}
               </div>
-            </div>
-          `;
-        }
+            `;
+            
+            // Добавляем оглавление
+            renderDossierTOC(entry);
+            
+            // Добавляем блок "Связано с"
+            renderDossierRelated(entry);
+          }
+          
+          // Материалы
+          if (els.blocks) {
+            let allMaterials = Array.isArray(entry.materials) ? [...entry.materials] : [];
+            
+            // Проверяем, откуда открыто досье
+            const referrer = document.referrer;
+            const isFromLeak = referrer.includes('access=leak') || sessionStorage.getItem('last_access_filter') === 'leak';
+            
+            // Добавляем материалы утечек, если просматриваем из фильтра утечек
+            if (isFromLeak && Array.isArray(entry.leakMaterials)) {
+              allMaterials = [...allMaterials, ...entry.leakMaterials];
+            }
+            
+            // Добавляем внутренние материалы только если есть внутренний доступ
+            const hasInternalAccess = localStorage.getItem('contour_internal_access') === 'granted';
+            if (hasInternalAccess && Array.isArray(entry.internalMaterials)) {
+              allMaterials = [...allMaterials, ...entry.internalMaterials];
+            }
+            
+            if (allMaterials.length === 0) {
+              els.blocks.innerHTML = `<div class="note">Материалы отсутствуют или были удалены.</div>`;
+            } else {
+              els.blocks.innerHTML = allMaterials.map((m, index) => {
+                const isInternal = m.stamp && m.stamp.includes("INTERNAL");
+                const materialText = redactify(String(m.text || "")).replace(/\n/g, "<br>");
+                const materialTitle = (m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const materialStamp = (m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                
+                return `
+                  <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
+                    <div class="block-head">
+                      <div class="block-title">${materialTitle}</div>
+                      <div class="block-meta">${materialStamp}</div>
+                    </div>
+                    <div class="block-body">${materialText}</div>
+                  </div>
+                `;
+              }).join("");
+            }
+          }
+          
+          // Примечания составителя
+          const editorNoteSection = document.getElementById("editor-note-section");
+          if (editorNoteSection) {
+            if (entry.editorNote) {
+              editorNoteSection.id = "editor-note";
+              editorNoteSection.style.display = "block";
+              if (els.editorNote) {
+                els.editorNote.innerHTML = `<strong>Рекомендации:</strong><br>${entry.editorNote}`;
+              }
+            } else {
+              editorNoteSection.style.display = "none";
+            }
+          }
+          
+          // Внутренняя пометка
+          if (els.internalNoteSection) {
+            const hasInternalAccess = localStorage.getItem('contour_internal_access') === 'granted';
+            if (hasInternalAccess && entry.internalNote) {
+              els.internalNoteSection.style.display = "block";
+              els.internalNoteSection.id = "internal-note";
+              const internalNoteTitle = document.getElementById("internal-note-title");
+              if (internalNoteTitle) {
+                internalNoteTitle.textContent = "Внутренний отчёт";
+              }
+              if (els.internalNote) {
+                els.internalNote.textContent = entry.internalNote;
+              }
+            } else {
+              els.internalNoteSection.style.display = "none";
+            }
+          }
+          
+          // Обновляем UI внутреннего доступа
+          updateInternalAccessUI();
+          
+          return;
+        } else {
+          // Специальный рендер для остальных угроз (ЗАСЕКРЕЧЕНО)
+          if (els.head) {
+            els.head.textContent = "ЗАСЕКРЕЧЕНО";
+          }
 
-        // Скрываем обычные секции для угроз
-        if (els.editorNote) {
-          els.editorNote.textContent = "—";
-        }
-        if (els.internalNoteSection) {
-          els.internalNoteSection.style.display = "none";
-        }
+          if (els.meta) {
+            els.meta.innerHTML = `
+              <div class="kv">
+                <div class="kv-row">
+                  <div class="kv-k">ID</div>
+                  <div class="kv-v">${formatId(entry.id, entry.type)}</div>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-k">Статус</div>
+                  <div class="kv-v">${statusBadge(entry.status)}</div>
+                </div>
+              </div>
+            `;
+          }
 
-        return;
+          if (els.blocks) {
+            els.blocks.innerHTML = `
+              <div class="threat-section">
+                <div class="threat-warning-banner">Подтверждён риск для жизни</div>
+                
+                <div class="block threat-block">
+                  <div class="block-head">
+                    <div class="block-title">Как это работает</div>
+                  </div>
+                  <div class="block-body">ЗАСЕКРЕЧЕНО</div>
+                </div>
+
+                <div class="block threat-block">
+                  <div class="block-head">
+                    <div class="block-title">Триггер активации</div>
+                  </div>
+                  <div class="block-body">ЗАСЕКРЕЧЕНО</div>
+                </div>
+
+                <div class="block threat-block">
+                  <div class="block-head">
+                    <div class="block-title">Почему это смертельно</div>
+                  </div>
+                  <div class="block-body">ЗАСЕКРЕЧЕНО</div>
+                </div>
+
+                <div class="block threat-block">
+                  <div class="block-head">
+                    <div class="block-title">Что помогает / что не помогает</div>
+                  </div>
+                  <div class="block-body">ЗАСЕКРЕЧЕНО</div>
+                </div>
+              </div>
+            `;
+          }
+
+          // Скрываем обычные секции для угроз
+          if (els.editorNote) {
+            els.editorNote.textContent = "—";
+          }
+          if (els.internalNoteSection) {
+            els.internalNoteSection.style.display = "none";
+          }
+
+          return;
+        }
       }
       
       // Обычный рендер для не-угроз
@@ -216,11 +525,16 @@
             ` : ""}
           </div>
         `;
+        
+        // Добавляем оглавление
+        renderDossierTOC(entry);
+        
+        // Добавляем блок "Связано с"
+        renderDossierRelated(entry);
       }
 
       // Материалы - показываем все, включая internal и leak (если есть доступ)
       if (els.blocks) {
-        const settings = window.getContourSettings ? window.getContourSettings() : {};
         let allMaterials = Array.isArray(entry.materials) ? [...entry.materials] : [];
         
         // Проверяем, откуда открыто досье (из какого фильтра доступа)
@@ -239,111 +553,20 @@
           allMaterials = [...allMaterials, ...entry.internalMaterials];
         }
 
-        // Специальная обработка для KEF-002 - интерактивное заполнение
-        if (entry.id === 'KEF-002') {
-          const templateText = entry.templateText || '';
-          // Показываем только публичные материалы (не internal)
-          const publicMaterials = allMaterials.filter(m => !m.stamp || !m.stamp.includes("INTERNAL"));
-          let materialHTML = publicMaterials.map((m, index) => {
-            let materialText = redactify(String(m.text || "")).replace(/\n/g, "<br>");
-            let materialTitle = (m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            let materialStamp = (m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-            return `
-              <div class="block">
-                <div class="block-head">
-                  <div class="block-title">${materialTitle}</div>
-                  <div class="block-meta">${materialStamp}</div>
-                </div>
-                <div class="block-body">${materialText}</div>
-              </div>
-            `;
-          }).join("");
-
-          // Добавляем блок с кнопкой и полем для заполнения
-          materialHTML += `
-            <div class="block template-block">
-              <div class="block-head">
-                <div class="block-title">Заполнение материала</div>
-              </div>
-              <div class="block-body">
-                <button id="fill-template-btn" class="template-btn">Заполнить материал</button>
-                <div id="template-editor-container" style="display: none; margin-top: 16px;">
-                  <textarea id="template-editor" class="template-editor" readonly></textarea>
-                  <div id="template-error" class="template-error" style="display: none;"></div>
-                </div>
-              </div>
-            </div>
-          `;
-
-          // Добавляем внутренний блок только если есть доступ (без заглушки)
-          if (hasInternalAccess && Array.isArray(entry.internalMaterials) && entry.internalMaterials.length > 0) {
-            const internalMaterial = entry.internalMaterials[0];
-            materialHTML += `
-              <div class="block" data-internal="true">
-                <div class="block-head">
-                  <div class="block-title">${(internalMaterial.kind || "Полный отчёт").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                  <div class="block-meta">${(internalMaterial.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-                </div>
-                <div class="block-body">${redactify(String(internalMaterial.text || "")).replace(/\n/g, "<br>")}</div>
-              </div>
-            `;
-          }
-
-          els.blocks.innerHTML = materialHTML;
-
-          // Инициализируем интерактивное заполнение
-          initTemplateEditor(templateText);
-          return; // Выходим раньше, чтобы не применять обычную логику
-        }
-
-        // Применяем настройки к материалам
-        const detailLevel = settings.detailLevel !== undefined ? settings.detailLevel : 1;
-        
-        // Режим "Консервативный" - показываем только основные материалы
-        if (settings.interpretationMode === 'conservative') {
-          allMaterials = allMaterials.filter(m => m.kind && !m.stamp?.includes("INTERNAL"));
-        }
-
-        // Режим "Допущения" - может показывать дополнительные пометки
-        // Режим "Несогласованный" - может показывать зачёркнутые материалы
-
-        // Уровень детализации влияет на количество материалов
-        if (detailLevel === 0) {
-          // Сводка - показываем только первые 2 материала
-          allMaterials = allMaterials.slice(0, 2);
-        } else if (detailLevel === 2) {
-          // Полный контекст - показываем все, включая возможные повреждённые
-        }
 
         if (allMaterials.length === 0) {
           els.blocks.innerHTML = `<div class="note">Материалы отсутствуют или были удалены.</div>`;
         } else {
+          // Добавляем якорь к секции материалов
+          const materialsSection = document.getElementById("materials-section");
+          if (materialsSection) {
+            materialsSection.id = "materials";
+          }
           els.blocks.innerHTML = allMaterials.map((m, index) => {
             const isInternal = m.stamp && m.stamp.includes("INTERNAL");
-            let materialText = redactify(String(m.text || "")).replace(/\n/g, "<br>");
-            let materialTitle = (m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            let materialStamp = (m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-            // Режим "Несогласованный" - добавляем зачёркнутые строки
-            if (settings.interpretationMode === 'inconsistent' && Math.random() > 0.7) {
-              const lines = materialText.split('<br>');
-              if (lines.length > 1) {
-                const randomLine = Math.floor(Math.random() * lines.length);
-                lines[randomLine] = `<span style="text-decoration: line-through; opacity: 0.5;">${lines[randomLine]}</span>`;
-                materialText = lines.join('<br>');
-              }
-            }
-
-            // Полный контекст - иногда добавляем пометки о повреждении
-            if (detailLevel === 2 && Math.random() > 0.85) {
-              materialStamp += ' <span style="color: rgba(239, 68, 68, 0.8);">[данные повреждены]</span>';
-            }
-
-            // Скрывать повторяющиеся формулировки
-            if (settings.hideRepetitions && materialText.length < 50) {
-              materialText = '<span style="opacity: 0.5; font-style: italic;">[содержимое скрыто]</span>';
-            }
+            const materialText = redactify(String(m.text || "")).replace(/\n/g, "<br>");
+            const materialTitle = (m.kind || "Материал").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const materialStamp = (m.stamp || "").replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             return `
               <div class="block" ${isInternal ? 'data-internal="true"' : ''}>
@@ -358,91 +581,57 @@
         }
       }
 
-      // Применяем уровень детализации
-      const settings = window.getContourSettings ? window.getContourSettings() : {};
-      const detailLevel = settings.detailLevel !== undefined ? settings.detailLevel : 1;
-
       // Примечания составителя
-      if (els.editorNote) {
-        if (detailLevel === 0) {
-          // Сводка - скрываем примечания
-          els.editorNote.textContent = "—";
-        } else if (entry.dossier && entry.dossier.observe) {
-          els.editorNote.innerHTML = `<strong>Рекомендации по наблюдению:</strong><br>${entry.dossier.observe}`;
+      const editorNoteSection = document.getElementById("editor-note-section");
+      if (editorNoteSection) {
+        if (entry.dossier && entry.dossier.observe) {
+          editorNoteSection.id = "editor-note";
+          editorNoteSection.style.display = "block";
+          if (els.editorNote) {
+            els.editorNote.innerHTML = `<strong>Рекомендации по наблюдению:</strong><br>${entry.dossier.observe}`;
+          }
         } else {
-          els.editorNote.textContent = "—";
+          editorNoteSection.style.display = "none";
+          if (els.editorNote) {
+            els.editorNote.textContent = "—";
+          }
         }
       }
 
       // Внутренняя пометка (нестабильная)
       if (els.internalNoteSection) {
-        if (detailLevel === 0) {
-          // Сводка - скрываем внутренние пометки
-          els.internalNoteSection.style.display = "none";
-        } else if (entry.internalNote) {
-          if (detailLevel === 2) {
-            // Полный контекст - показываем всегда
-            els.internalNoteSection.style.display = "block";
-            if (els.internalNote) {
-              els.internalNote.textContent = entry.internalNote;
-            }
-          } else {
-            // Материалы - 30% вероятность показа
-            if (Math.random() < 0.3) {
-              els.internalNoteSection.style.display = "block";
-              if (els.internalNote) {
-                els.internalNote.textContent = entry.internalNote;
-              }
-            } else {
-              els.internalNoteSection.style.display = "block";
-              if (els.internalNote) {
-                els.internalNote.textContent = "Дополнительные комментарии отсутствуют или были удалены в ходе сверки.";
-              }
-            }
+        if (entry.internalNote) {
+          els.internalNoteSection.style.display = "block";
+          els.internalNoteSection.id = "internal-note";
+          const internalNoteTitle = document.getElementById("internal-note-title");
+          if (internalNoteTitle) {
+            internalNoteTitle.textContent = "Внутренний отчёт";
+          }
+          if (els.internalNote) {
+            els.internalNote.textContent = entry.internalNote;
           }
         } else {
           els.internalNoteSection.style.display = "none";
         }
       }
 
-      // Полный контекст - добавляем зачёркнутые строки и пометки о повреждении
-      if (detailLevel === 2 && els.blocks) {
-        const blocks = els.blocks.querySelectorAll('.block');
-        blocks.forEach((block, index) => {
-          // Случайно добавляем зачёркнутые строки
-          if (Math.random() > 0.7) {
-            const body = block.querySelector('.block-body');
-            if (body) {
-              const text = body.innerHTML;
-              // Добавляем зачёркнутую строку в случайное место
-              const lines = text.split('<br>');
-              if (lines.length > 1) {
-                const randomLine = Math.floor(Math.random() * lines.length);
-                lines[randomLine] = `<span style="text-decoration: line-through; opacity: 0.5;">${lines[randomLine]}</span>`;
-                body.innerHTML = lines.join('<br>');
-              }
-            }
-          }
-        });
-
-        // Иногда добавляем пометку "данные повреждены"
-        if (Math.random() > 0.8) {
-          const firstBlock = els.blocks.querySelector('.block');
-          if (firstBlock) {
-            const meta = firstBlock.querySelector('.block-meta');
-            if (meta) {
-              meta.innerHTML += ' <span style="color: rgba(239, 68, 68, 0.8);">[данные повреждены]</span>';
-            }
-          }
-        }
-      }
 
       // Обновляем UI внутреннего доступа
       updateInternalAccessUI();
 
     } catch (error) {
       console.error('Error in runDossier:', error);
-      showError(error.message || "Произошла ошибка при загрузке досье.");
+      const els = getElements();
+      if (els.head) els.head.textContent = "Сбой компиляции";
+      if (els.meta) {
+        els.meta.innerHTML = `<div class="note" style="color: rgba(239, 68, 68, 0.9);">
+          <p>Сбой компиляции. Данные недоступны.</p>
+          <p style="margin-top: 8px; color: rgba(255, 255, 255, 0.6); font-size: 12px; font-family: monospace;">${error.message || "Неизвестная ошибка"}</p>
+          <p style="margin-top: 12px;"><a href="index.html" style="color: rgba(255, 255, 255, 0.8); text-decoration: underline;">← Вернуться в архив</a></p>
+        </div>`;
+      }
+      if (els.blocks) els.blocks.innerHTML = "";
+      initDossierButtons(null);
     }
   }
 
@@ -505,115 +694,6 @@
     }
   }
 
-  // Инициализация интерактивного редактора шаблона для KEF-002
-  function initTemplateEditor(templateText) {
-    if (!templateText) return;
-
-    const btn = document.getElementById('fill-template-btn');
-    const container = document.getElementById('template-editor-container');
-    const editor = document.getElementById('template-editor');
-    const errorMsg = document.getElementById('template-error');
-
-    if (!btn || !container || !editor || !errorMsg) return;
-
-    let cursorIndex = 0;
-    let isActive = false;
-    let isComplete = false;
-
-    // Обработка сбоев (вставляем каждые 120-180 символов)
-    const glitchPositions = [];
-    let currentPos = 0;
-    while (currentPos < templateText.length) {
-      const glitchPos = currentPos + 120 + Math.floor(Math.random() * 60);
-      if (glitchPos < templateText.length) {
-        glitchPositions.push(glitchPos);
-        currentPos = glitchPos;
-      } else {
-        break;
-      }
-    }
-
-    // Добавляем сбои в текст
-    let textWithGlitches = templateText;
-    for (let i = glitchPositions.length - 1; i >= 0; i--) {
-      const pos = glitchPositions[i];
-      const glitchText = i % 2 === 0 ? '\n[правка не требуется]\n' : '\n(совпадение подтверждено)\n';
-      textWithGlitches = textWithGlitches.slice(0, pos) + glitchText + textWithGlitches.slice(pos);
-    }
-
-    btn.addEventListener('click', () => {
-      if (isComplete) {
-        errorMsg.textContent = 'Материал уже заполнен. Дополнение запрещено.';
-        errorMsg.style.display = 'block';
-        return;
-      }
-
-      container.style.display = 'block';
-      editor.value = '';
-      editor.readOnly = false;
-      editor.focus();
-      cursorIndex = 0;
-      isActive = true;
-      btn.style.display = 'none';
-      errorMsg.style.display = 'none';
-    });
-
-    // Обработка всех событий клавиатуры
-    editor.addEventListener('keydown', (e) => {
-      if (!isActive || isComplete) {
-        e.preventDefault();
-        return;
-      }
-
-      e.preventDefault();
-
-      // Проверяем, не закончился ли шаблон
-      if (cursorIndex >= textWithGlitches.length) {
-        isComplete = true;
-        editor.readOnly = true;
-        errorMsg.textContent = 'Материал уже заполнен. Дополнение запрещено.';
-        errorMsg.style.display = 'block';
-        return;
-      }
-
-      // Получаем следующий символ(ы) из шаблона
-      let nextChar = textWithGlitches[cursorIndex];
-      
-      // Если это Enter в шаблоне, вставляем перенос строки
-      if (nextChar === '\n') {
-        editor.value += '\n';
-        cursorIndex++;
-      } else {
-        // Вставляем символ в конец текста (игнорируем позицию курсора)
-        editor.value += nextChar;
-        cursorIndex++;
-      }
-
-      // Текст всегда яркий
-      editor.style.color = `rgba(255, 255, 255, 1)`;
-
-      // Прокручиваем вниз
-      editor.scrollTop = editor.scrollHeight;
-
-      // Проверяем завершение
-      if (cursorIndex >= textWithGlitches.length) {
-        isComplete = true;
-        editor.readOnly = true;
-        errorMsg.textContent = 'Материал уже заполнен. Дополнение запрещено.';
-        errorMsg.style.display = 'block';
-      }
-    });
-
-    // Предотвращаем вставку через Ctrl+V
-    editor.addEventListener('paste', (e) => {
-      e.preventDefault();
-    });
-
-    // Предотвращаем контекстное меню
-    editor.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
-  }
 
   // Запуск при загрузке страницы
   if (document.readyState === 'loading') {

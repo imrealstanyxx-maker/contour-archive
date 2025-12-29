@@ -42,8 +42,6 @@
         <span class="btn-threats-text">Угрозы</span>
       </button>
 
-      <button id="settings-btn" class="btn-settings" title="Параметры отображения">⚙</button>
-
       <a class="btn-link" href="about.html">О архиве</a>
       <a class="btn-link" href="partial.html">Неполная компиляция</a>
     </div>
@@ -55,6 +53,7 @@
       <div class="panel-title">Сводка</div>
       <div class="panel-body">
         <div id="stats" class="stats"></div>
+        <div id="terminal-indicator" style="display: none; margin-top: 12px; padding: 8px 12px; background: rgba(90, 200, 250, 0.1); border-left: 2px solid rgba(90, 200, 250, 0.3); color: #5ac8fa; font-size: 13px;"></div>
         <div id="contour-note" style="display: none; transition: opacity 0.3s;"></div>
         <div id="contour-warning" style="display: none; transition: opacity 0.3s;"></div>
         <div class="note">
@@ -62,6 +61,25 @@
         </div>
         <div class="note" style="margin-top: 16px; border-left: 3px solid rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.05);">
           Не все записи предназначены для ознакомления.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="filter-results-panel" style="display: none;">
+      <div class="panel-title">Результаты поиска</div>
+      <div class="panel-body">
+        <div id="results-count" style="margin-bottom: 12px; color: rgba(255, 255, 255, 0.8); font-size: 14px;"></div>
+        <div id="active-filters" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;"></div>
+        <button id="reset-filters-btn" class="btn-link" style="font-size: 13px; padding: 6px 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">Сбросить всё</button>
+      </div>
+    </section>
+
+    <section class="panel" id="locked-materials-panel" style="display: none;">
+      <div class="panel-title">Часть материалов недоступна</div>
+      <div class="panel-body">
+        <div class="note" style="color: rgba(255, 255, 255, 0.7);">
+          Компиляция сокращена. Часть досье изъята и зашифрована до завершения сверки.
+          <span id="locked-count" style="margin-left: 8px; color: rgba(239, 68, 68, 0.8);"></span>
         </div>
       </div>
     </section>
@@ -99,7 +117,7 @@
 
     <section id="section-empty" class="panel" style="display: none;">
       <div class="panel-body">
-        <div class="note">Ничего не найдено.</div>
+        <div class="note" style="color: rgba(255, 255, 255, 0.7); font-style: italic;">Материалы по заданным критериям отсутствуют или изъяты.</div>
       </div>
     </section>
 
@@ -109,111 +127,7 @@
     </footer>
   </main>
 
-  <!-- Модальное окно настроек -->
-  <div id="settings-modal" class="settings-modal" style="display: none;">
-    <div class="settings-modal-content">
-      <div class="settings-header">
-        <h2 class="settings-title">Параметры отображения и интерпретации</h2>
-        <p class="settings-subtitle">Изменения могут повлиять на полноту и стабильность выдачи.</p>
-        <button id="settings-close" class="settings-close">×</button>
-      </div>
-
-      <div class="settings-body">
-        <!-- 1. Режим интерпретации данных -->
-        <div class="settings-group">
-          <label class="settings-label" data-tooltip="Определяет, как система обрабатывает и отображает данные. Влияет на полноту и стабильность выдачи.">Режим интерпретации данных</label>
-          <select id="interpretation-mode" class="settings-select" data-tooltip="Стандартный: обычный режим работы. Консервативный: показывает только проверенные записи. Допущения: включает неподтверждённые данные. Несогласованный: может показывать противоречия.">
-            <option value="standard">Стандартный</option>
-            <option value="conservative">Консервативный</option>
-            <option value="assumptions">Допущения</option>
-            <option value="inconsistent">Несогласованный (нестабильный)</option>
-          </select>
-        </div>
-
-        <!-- 2. Уровень детализации -->
-        <div class="settings-group">
-          <label class="settings-label" data-tooltip="Определяет объём информации, отображаемой в записях. Более высокий уровень может показывать повреждённые или нестабильные данные.">Уровень детализации</label>
-          <div class="settings-slider-container">
-            <input type="range" id="detail-level" class="settings-slider" min="0" max="2" value="1" step="1" data-tooltip="Сводка: только основная информация. Материалы: стандартный объём данных. Полный контекст: все доступные данные, включая повреждённые." />
-            <div class="settings-slider-labels">
-              <span data-tooltip="Минимальный объём информации, скрывает внутренние пометки">Сводка</span>
-              <span data-tooltip="Стандартный режим отображения">Материалы</span>
-              <span data-tooltip="Может показывать зачёркнутые строки и пометки о повреждении данных">Полный контекст (не рекомендуется)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. Коррекция интерфейса -->
-        <div class="settings-group">
-          <label class="settings-label" data-tooltip="Параметры, влияющие на то, как система обрабатывает и отображает данные в интерфейсе.">Коррекция интерфейса</label>
-          <div class="settings-checkboxes">
-            <label class="settings-checkbox">
-              <input type="checkbox" id="smooth-discrepancies" data-tooltip="Скрывает пометки о несоответствиях и противоречиях в данных" />
-              <span>Сглаживать расхождения</span>
-            </label>
-            <label class="settings-checkbox">
-              <input type="checkbox" id="show-unconfirmed" data-tooltip="Добавляет предупреждения для элементов со статусом UNKNOWN" />
-              <span>Показывать неподтверждённые элементы</span>
-            </label>
-            <label class="settings-checkbox">
-              <input type="checkbox" id="hide-repetitions" data-tooltip="Скрывает короткие или повторяющиеся описания в карточках" />
-              <span>Скрывать повторяющиеся формулировки</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 4. Поведение при несоответствиях -->
-        <div class="settings-group">
-          <label class="settings-label" data-tooltip="Определяет, как система обрабатывает записи с несоответствиями в данных (например, статус ACTIVE без описания).">Поведение при несоответствиях</label>
-          <div class="settings-radio">
-            <label class="settings-radio-item">
-              <input type="radio" name="mismatch-behavior" value="ignore" checked data-tooltip="Записи с несоответствиями показываются как обычно" />
-              <span>Игнорировать</span>
-            </label>
-            <label class="settings-radio-item">
-              <input type="radio" name="mismatch-behavior" value="mark" data-tooltip="Записи с несоответствиями помечаются специальными метками" />
-              <span>Помечать</span>
-            </label>
-            <label class="settings-radio-item">
-              <input type="radio" name="mismatch-behavior" value="remove" data-tooltip="Записи с несоответствиями полностью скрываются из выдачи" />
-              <span>Удалять из выдачи</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 5. Экспериментальные параметры -->
-        <div class="settings-group settings-experimental">
-          <label class="settings-label" data-tooltip="Нестабильные параметры, использование которых может привести к непредсказуемому поведению системы.">Экспериментальные параметры</label>
-          <p class="settings-subtitle">Использование может привести к нестабильной выдаче.</p>
-          <div class="settings-checkboxes">
-            <label class="settings-checkbox">
-              <input type="checkbox" id="allow-delayed" data-tooltip="Разрешает показ данных, которые ещё не прошли полную проверку" />
-              <span>Разрешить отложенные данные</span>
-            </label>
-            <label class="settings-checkbox">
-              <input type="checkbox" id="show-outside-compilation" data-tooltip="Показывает материалы, не включённые в основную компиляцию" />
-              <span>Показывать материалы вне компиляции</span>
-            </label>
-            <label class="settings-checkbox settings-disabled">
-              <input type="checkbox" id="external-evidence" disabled data-tooltip="Параметр недоступен" />
-              <span>Учитывать внешние свидетельства</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 6. Кнопка сброса -->
-        <div class="settings-group">
-          <button id="settings-reset" class="settings-reset-btn">Сбросить параметры интерпретации</button>
-          <div id="settings-reset-message" class="settings-reset-message" style="display: none;">
-            Некоторые изменения не могут быть отменены.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="assets/data.js"></script>
-  <script src="assets/settings.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
